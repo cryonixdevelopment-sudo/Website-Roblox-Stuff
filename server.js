@@ -49,6 +49,8 @@ function ensureAuthSchema(){
       edited_at TIMESTAMPTZ
     );
     ALTER TABLE orvian_chat_messages ADD COLUMN IF NOT EXISTS edited_at TIMESTAMPTZ;
+    ALTER TABLE orvian_chat_messages ADD COLUMN IF NOT EXISTS attachment_data TEXT;
+    ALTER TABLE orvian_chat_messages ADD COLUMN IF NOT EXISTS attachment_url TEXT;
     CREATE TABLE IF NOT EXISTS orvian_sessions (
       token_hash CHAR(64) PRIMARY KEY,
       user_id BIGINT NOT NULL REFERENCES orvian_users(id) ON DELETE CASCADE,
@@ -215,7 +217,7 @@ app.get('/api/chat/messages',requireAccount,async(req,res)=>{
   if(!chatChannels.has(channel))return res.status(400).json({error:'Unknown channel.'});
   try{
     const result=await authPool.query(`
-      SELECT m.id,m.user_id,m.body,m.created_at,m.edited_at,u.username,u.role
+      SELECT m.id,m.user_id,m.body,m.created_at,m.edited_at,m.attachment_data,m.attachment_url,u.username,u.role
       FROM orvian_chat_messages m JOIN orvian_users u ON u.id=m.user_id
       WHERE m.channel=$1 ORDER BY m.created_at DESC LIMIT 100
     `,[channel]);
@@ -225,15 +227,19 @@ app.get('/api/chat/messages',requireAccount,async(req,res)=>{
 app.post('/api/chat/messages',requireAccount,async(req,res)=>{
   const channel=String(req.body?.channel||'');
   const body=String(req.body?.body||'').trim();
+  const attachmentData=String(req.body?.attachmentData||'');
+  const attachmentUrl=String(req.body?.attachmentUrl||'');
   if(!chatChannels.has(channel))return res.status(400).json({error:'Unknown channel.'});
-  if(!body||body.length>1000)return res.status(400).json({error:'Messages must be 1–1000 characters.'});
+  if((!body&&!attachmentData&&!attachmentUrl)||body.length>1000)return res.status(400).json({error:'Add a message or image; text is limited to 1000 characters.'});
+  if(attachmentData&&(!/^data:image\/(png|jpeg|webp|gif);base64,/i.test(attachmentData)||attachmentData.length>350000))return res.status(400).json({error:'Image must be PNG, JPEG, WebP, or GIF under 250 KB.'});
+  if(attachmentUrl){try{const parsed=new URL(attachmentUrl);if(parsed.protocol!=='https:')throw new Error()}catch{return res.status(400).json({error:'GIF URL must be a valid HTTPS address.'})}}
   if((channel==='announcements'||channel==='rules')&&req.authUser.role!=='owner')
     return res.status(403).json({error:'Only the Owner can post in this channel.'});
   try{
     const result=await authPool.query(`
-      INSERT INTO orvian_chat_messages(channel,user_id,body) VALUES($1,$2,$3)
-      RETURNING id,body,created_at
-    `,[channel,req.authUser.id,body]);
+      INSERT INTO orvian_chat_messages(channel,user_id,body,attachment_data,attachment_url) VALUES($1,$2,$3,$4,$5)
+      RETURNING id,body,attachment_data,attachment_url,created_at
+    `,[channel,req.authUser.id,body,attachmentData||null,attachmentUrl||null]);
     res.status(201).json({message:{...result.rows[0],id:String(result.rows[0].id),username:req.authUser.username,role:req.authUser.role}});
   }catch(error){console.error('Chat post failed:',error.message);res.status(500).json({error:'Unable to send message.'})}
 });
