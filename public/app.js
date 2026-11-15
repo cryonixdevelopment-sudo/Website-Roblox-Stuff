@@ -558,7 +558,10 @@ const chatChannelDescription=document.querySelector('#chat-channel-description')
 const chatDescriptions={general:'Talk with the Orvian community',introductions:'Introduce yourself',announcements:'Official updates from the Owner',rules:'Community rules from the Owner'};
 let activeChatChannel='general';
 let chatPollTimer=0;
+let currentChatMessages=[];
+let pendingChatAttachment=null;
 function renderChatMessages(messages){
+  currentChatMessages=messages;
   chatMessages.replaceChildren();
   if(!messages.length){
     const empty=document.createElement('p');empty.className='chat-welcome';
@@ -581,7 +584,10 @@ function renderChatMessages(messages){
       actions.append(edit,remove);head.append(actions);
     }
     const text=document.createElement('p');text.textContent=message.body;
-    body.append(head,text);item.append(avatar,body);chatMessages.append(item);
+    body.append(head,text);
+    const attachment=message.attachment_data||message.attachment_url;
+    if(attachment){const image=document.createElement('img');image.className='chat-message-attachment';image.src=attachment;image.alt='Shared attachment';image.loading='lazy';body.append(image)}
+    item.dataset.search=(message.username+' '+message.body).toLowerCase();item.append(avatar,body);chatMessages.append(item);
   });
   chatMessages.scrollTop=chatMessages.scrollHeight;
 }
@@ -643,7 +649,7 @@ document.querySelector('#chat-form').addEventListener('submit',async event=>{
   try{
     const response=await fetch('/api/chat/messages',{method:'POST',headers:{'Content-Type':'application/json'},credentials:'same-origin',body:JSON.stringify({channel:activeChatChannel,body})});
     const data=await response.json();if(!response.ok)throw new Error(data.error||'Unable to send.');
-    chatInput.value='';chatStatus.textContent='';loadChatMessages();
+    chatInput.value='';clearChatAttachment();chatStatus.textContent='';loadChatMessages();
   }catch(error){chatStatus.textContent=error.message}
 });
 
@@ -749,3 +755,55 @@ openChat=function(){
 };
 const originalCloseChat=closeChat;
 closeChat=function(){clearInterval(memberPollTimer);originalCloseChat()};
+
+
+// Functional chat workspace controls
+const channelFilter=document.querySelector('#channel-filter');
+const messageSearch=document.querySelector('#chat-message-search');
+const attachmentInput=document.querySelector('#chat-attachment-input');
+const attachmentPreview=document.querySelector('#chat-attachment-preview');
+function clearChatAttachment(){pendingChatAttachment=null;attachmentInput.value='';attachmentPreview.hidden=true;attachmentPreview.replaceChildren()}
+function showChatAttachment(label,src){
+  attachmentPreview.replaceChildren();const name=document.createElement('span');name.textContent=label;
+  const remove=document.createElement('button');remove.type='button';remove.textContent='×';remove.setAttribute('aria-label','Remove attachment');remove.addEventListener('click',clearChatAttachment);
+  attachmentPreview.append(name,remove);if(src){const image=document.createElement('img');image.src=src;image.alt='Attachment preview';attachmentPreview.append(image)}attachmentPreview.hidden=false;
+}
+document.querySelectorAll('.category-toggle').forEach(button=>button.addEventListener('click',()=>{
+  const section=button.closest('.channel-category');const collapsed=section.classList.toggle('collapsed');button.setAttribute('aria-expanded',String(!collapsed));
+}));
+document.querySelector('#chat-collapse-all').addEventListener('click',event=>{
+  const expanded=event.currentTarget.getAttribute('aria-expanded')==='true';
+  document.querySelectorAll('.channel-category').forEach(section=>{section.classList.toggle('collapsed',expanded);section.querySelector('.category-toggle')?.setAttribute('aria-expanded',String(!expanded))});
+  event.currentTarget.setAttribute('aria-expanded',String(!expanded));event.currentTarget.textContent=expanded?'›':'⌄';
+});
+channelFilter.addEventListener('input',()=>{
+  const query=channelFilter.value.trim().toLowerCase();
+  document.querySelectorAll('.chat-channel').forEach(channel=>channel.classList.toggle('filtered-out',!channel.textContent.toLowerCase().includes(query)));
+  document.querySelectorAll('.channel-category').forEach(section=>{if(query)section.classList.remove('collapsed')});
+});
+messageSearch.addEventListener('input',()=>{
+  const query=messageSearch.value.trim().toLowerCase();
+  chatMessages.querySelectorAll('.chat-message').forEach(message=>message.classList.toggle('filtered-out',query&&!message.dataset.search.includes(query)));
+});
+document.querySelector('#chat-settings-control').addEventListener('click',()=>document.querySelector('#settings-dialog').showModal());
+document.querySelector('#chat-status-control').addEventListener('click',openProfileEditor);
+document.querySelector('#chat-notification-control').addEventListener('click',()=>{
+  const off=chatView.classList.toggle('chat-notifications-off');localStorage.setItem('orvian-chat-notifications',off?'off':'on');notify(off?'Chat sounds muted':'Chat sounds enabled');
+});
+document.querySelector('#chat-members-toggle').addEventListener('click',()=>chatView.classList.toggle('members-hidden'));
+document.querySelector('#composer-add').addEventListener('click',()=>attachmentInput.click());
+attachmentInput.addEventListener('change',async()=>{
+  const file=attachmentInput.files?.[0];if(!file)return;
+  if(!/^image\/(png|jpeg|webp|gif)$/.test(file.type)){chatStatus.textContent='Choose a PNG, JPEG, WebP, or GIF image.';return}
+  if(file.size>250000){chatStatus.textContent='Images must be under 250 KB.';return}
+  const data=await new Promise((resolve,reject)=>{const reader=new FileReader();reader.onload=()=>resolve(reader.result);reader.onerror=reject;reader.readAsDataURL(file)});
+  pendingChatAttachment={data};showChatAttachment(file.name,data);
+});
+document.querySelector('#composer-gif').addEventListener('click',()=>{
+  const url=window.prompt('Paste a direct HTTPS GIF or image URL');if(!url)return;
+  try{const parsed=new URL(url);if(parsed.protocol!=='https:')throw new Error();pendingChatAttachment={url:parsed.href};showChatAttachment('GIF link',parsed.href)}
+  catch{chatStatus.textContent='Enter a valid HTTPS image URL.'}
+});
+document.querySelector('#composer-emoji').addEventListener('click',()=>{
+  const emojis=['🙂','😂','🔥','💀','👍','❤️','🎮','✨'];const chosen=window.prompt('Choose or paste an emoji',emojis.join(' '));if(chosen){chatInput.value+=chosen;chatInput.focus()}
+});
