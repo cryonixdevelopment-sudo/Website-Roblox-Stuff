@@ -55,25 +55,24 @@ async function prepareProxy(){
       wasm:'/scram/scramjet.wasm.wasm',all:'/scram/scramjet.all.js',sync:'/scram/scramjet.sync.js'
     }});
     await scramjetController.init();
-    const registration=await navigator.serviceWorker.register('/sw.js');
-    if(!registration.active){
-      const worker=registration.installing||registration.waiting;
-      if(!worker)return false;
-      const active=await new Promise(resolve=>{
-        const timeout=setTimeout(()=>resolve(false),10000);
-        worker.addEventListener('statechange',()=>{
-          if(worker.state==='activated'){clearTimeout(timeout);resolve(true)}
-          else if(worker.state==='redundant'){clearTimeout(timeout);resolve(false)}
-        });
-      });
-      if(!active)return false;
+    const registration=await navigator.serviceWorker.register('/sw.js',{updateViaCache:'none'});
+    await registration.update();
+    // A registered worker may still be installing. Wait for activation AND
+    // for the current document to be controlled before creating Scramjet frames.
+    await navigator.serviceWorker.ready;
+    if(!navigator.serviceWorker.controller){
+      await Promise.race([
+        new Promise(resolve=>navigator.serviceWorker.addEventListener('controllerchange',resolve,{once:true})),
+        new Promise((_,reject)=>setTimeout(()=>reject(new Error('Service worker control timed out')),10000))
+      ]);
     }
+    if(!navigator.serviceWorker.controller)throw new Error('Service worker is not controlling Orvian');
     scramjetConnection=new window.BareMux.BareMuxConnection('/baremux/worker.js');
     const wispUrl=(location.protocol==='https:'?'wss://':'ws://')+location.host+'/wisp/';
     if((await scramjetConnection.getTransport())!=='/libcurl/index.mjs')
       await scramjetConnection.setTransport('/libcurl/index.mjs',[{websocket:wispUrl}]);
     return true;
-  })().catch(error=>{console.error('Scramjet setup failed:',error);return false});
+  })().catch(error=>{console.error('Scramjet setup failed:',error);proxyReadyPromise=null;viewerNote.textContent='Scramjet initialization failed: '+(error?.message||String(error));return false});
   return proxyReadyPromise;
 }
 function clearEmbeddedFrame(){viewerFrameHost.replaceChildren();viewerFrame=null}
@@ -101,7 +100,7 @@ async function showInViewer(url,record=true){
   if(sequence!==navigationSequence||viewer.hidden)return;
   viewerUsesProxy=ready;clearEmbeddedFrame();
   if(!ready){
-    viewerNote.textContent='Scramjet requires a running Node.js server with HTTPS and WebSocket support. Static hosting cannot load embedded sites.';
+    if(!viewerNote.textContent.startsWith('Scramjet initialization failed:'))viewerNote.textContent='Scramjet is unavailable. Verify the Node.js deployment, service worker, and Wisp connection.';
     return;
   }
   try{
