@@ -1,10 +1,14 @@
-const storageKeys={links:'orvian-links',engine:'orvian-search-engine',newTabs:'orvian-new-tabs',reduceMotion:'orvian-reduce-motion',profile:'orvian-profile'};
-const engines={ddg:'https://duckduckgo.com/?q=',google:'https://www.google.com/search?q=',bing:'https://www.bing.com/search?q='};
+const storageKeys={links:'orvian-links',engine:'orvian-search-engine',newTabs:'orvian-new-tabs',reduceMotion:'orvian-reduce-motion',profile:'orvian-profile',theme:'orvian-theme',background:'orvian-background',preferHttps:'orvian-prefer-https',stripTracking:'orvian-strip-tracking'};
+const engines={ddg:'https://duckduckgo.com/?q=',google:'https://www.google.com/search?q=',bing:'https://www.bing.com/search?q=',brave:'https://search.brave.com/search?q=',startpage:'https://www.startpage.com/sp/search?query='};
 const searchForm=document.querySelector('#search-form');
 const searchInput=document.querySelector('#search-input');
 const searchEngine=document.querySelector('#search-engine');
 const newTabSetting=document.querySelector('#new-tab-setting');
 const motionSetting=document.querySelector('#motion-setting');
+const themeSetting=document.querySelector('#theme-setting');
+const backgroundSetting=document.querySelector('#background-setting');
+const httpsSetting=document.querySelector('#https-setting');
+const trackingSetting=document.querySelector('#tracking-setting');
 const savedLinks=document.querySelector('#saved-links');
 const displayName=document.querySelector('#display-name');
 const toast=document.querySelector('#toast');
@@ -21,7 +25,12 @@ function readLinks(){try{return JSON.parse(localStorage.getItem(storageKeys.link
 function normalize(value){
   const input=value.trim();
   if(!input)return null;
-  if(/^https?:\/\//i.test(input))return input;
+  if(/^https?:\/\//i.test(input)){
+    let url=input;
+    if(localStorage.getItem(storageKeys.preferHttps)==='true'&&url.startsWith('http://'))url=`https://${url.slice(7)}`;
+    if(localStorage.getItem(storageKeys.stripTracking)==='true')try{const parsed=new URL(url);[...parsed.searchParams.keys()].forEach(key=>{/^(utm_|fbclid$|gclid$|mc_eid$|igshid$)/i.test(key)&&parsed.searchParams.delete(key)});url=parsed.toString()}catch{}
+    return url;
+  }
   if(/^[\w-]+(\.[\w-]+)+([/:?#].*)?$/i.test(input))return `https://${input}`;
   const engine=localStorage.getItem(storageKeys.engine)||'ddg';
   return `${engines[engine]||engines.ddg}${encodeURIComponent(input)}`;
@@ -91,14 +100,27 @@ document.querySelector('#dialog-add-link').addEventListener('click',addLink);
 searchEngine.value=localStorage.getItem(storageKeys.engine)||'ddg';
 newTabSetting.checked=localStorage.getItem(storageKeys.newTabs)==='true';
 motionSetting.checked=localStorage.getItem(storageKeys.reduceMotion)==='true';
+themeSetting.value=localStorage.getItem(storageKeys.theme)||'midnight';
+backgroundSetting.value=localStorage.getItem(storageKeys.background)||'100';
+httpsSetting.checked=localStorage.getItem(storageKeys.preferHttps)==='true';
+trackingSetting.checked=localStorage.getItem(storageKeys.stripTracking)==='true';
 document.documentElement.classList.toggle('reduce-motion',motionSetting.checked);
+document.documentElement.dataset.theme=themeSetting.value;
+document.documentElement.style.setProperty('--background-opacity',String(Number(backgroundSetting.value)/100));
 searchEngine.addEventListener('change',()=>localStorage.setItem(storageKeys.engine,searchEngine.value));
 newTabSetting.addEventListener('change',()=>localStorage.setItem(storageKeys.newTabs,String(newTabSetting.checked)));
 motionSetting.addEventListener('change',()=>{localStorage.setItem(storageKeys.reduceMotion,String(motionSetting.checked));document.documentElement.classList.toggle('reduce-motion',motionSetting.checked)});
+themeSetting.addEventListener('change',()=>{localStorage.setItem(storageKeys.theme,themeSetting.value);document.documentElement.dataset.theme=themeSetting.value});
+backgroundSetting.addEventListener('input',()=>{localStorage.setItem(storageKeys.background,backgroundSetting.value);document.documentElement.style.setProperty('--background-opacity',String(Number(backgroundSetting.value)/100))});
+httpsSetting.addEventListener('change',()=>localStorage.setItem(storageKeys.preferHttps,String(httpsSetting.checked)));
+trackingSetting.addEventListener('change',()=>localStorage.setItem(storageKeys.stripTracking,String(trackingSetting.checked)));
+document.querySelectorAll('.settings-tab').forEach(tab=>tab.addEventListener('click',()=>{document.querySelectorAll('.settings-tab').forEach(item=>item.classList.toggle('active',item===tab));document.querySelectorAll('.settings-panel').forEach(panel=>panel.classList.toggle('active',panel.dataset.settingsPanel===tab.dataset.settingsTab))}));
 displayName.value=localStorage.getItem(storageKeys.profile)||'';
 document.querySelector('#save-profile').addEventListener('click',()=>{localStorage.setItem(storageKeys.profile,displayName.value.trim());notify('Profile saved locally')});
-document.querySelector('#clear-data').addEventListener('click',()=>{
+function clearLocalData(){
   if(!window.confirm('Clear Orvian bookmarks, settings, and profile from this browser?'))return;
-  Object.values(storageKeys).forEach(key=>localStorage.removeItem(key));renderLinks();searchEngine.value='ddg';newTabSetting.checked=false;motionSetting.checked=false;displayName.value='';document.documentElement.classList.remove('reduce-motion');notify('Local data cleared');
-});
+  Object.values(storageKeys).forEach(key=>localStorage.removeItem(key));renderLinks();searchEngine.value='ddg';newTabSetting.checked=false;motionSetting.checked=false;themeSetting.value='midnight';backgroundSetting.value='100';httpsSetting.checked=false;trackingSetting.checked=false;displayName.value='';document.documentElement.classList.remove('reduce-motion');document.documentElement.dataset.theme='midnight';document.documentElement.style.setProperty('--background-opacity','1');notify('Local data cleared');
+}
+document.querySelector('#clear-data').addEventListener('click',clearLocalData);
+document.querySelector('#settings-clear-data').addEventListener('click',clearLocalData);
 renderLinks();

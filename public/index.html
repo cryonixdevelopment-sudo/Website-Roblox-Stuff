@@ -70,7 +70,48 @@
     </main>
 
     <dialog id="links-dialog"><form method="dialog"><button class="close" aria-label="Close">×</button></form><p class="dialog-kicker">ORVIAN</p><h2>Your links</h2><div id="saved-links" class="saved-links"></div><button id="dialog-add-link" class="primary" type="button">Add a link</button></dialog>
-    <dialog id="settings-dialog"><form method="dialog"><button class="close" aria-label="Close">×</button></form><p class="dialog-kicker">PERSONALIZE</p><h2>Settings</h2><label class="setting"><span>Search engine</span><select id="search-engine"><option value="ddg">DuckDuckGo</option><option value="google">Google</option><option value="bing">Bing</option></select></label><label class="setting"><span>Open links in new tabs</span><input id="new-tab-setting" type="checkbox" /></label><label class="setting"><span>Reduce motion</span><input id="motion-setting" type="checkbox" /></label></dialog>
+    <dialog id="settings-dialog" class="settings-dialog">
+      <form method="dialog"><button class="close" aria-label="Close">×</button></form>
+      <aside class="settings-sidebar">
+        <div><p class="dialog-kicker">ORVIAN</p><h2>Settings</h2></div>
+        <nav aria-label="Settings sections">
+          <button class="settings-tab active" type="button" data-settings-tab="general">General</button>
+          <button class="settings-tab" type="button" data-settings-tab="appearance">Appearance</button>
+          <button class="settings-tab" type="button" data-settings-tab="privacy">Privacy</button>
+          <button class="settings-tab" type="button" data-settings-tab="data">Data</button>
+        </nav>
+        <p class="settings-version">Orvian • Personal start page</p>
+      </aside>
+      <div class="settings-content">
+        <section class="settings-panel active" data-settings-panel="general">
+          <p class="dialog-kicker">BROWSING</p><h3>General</h3>
+          <div class="settings-card">
+            <label class="setting"><span><strong>Search engine</strong><small>Used for words and questions</small></span><select id="search-engine"><option value="ddg">DuckDuckGo</option><option value="google">Google</option><option value="bing">Bing</option><option value="brave">Brave</option><option value="startpage">Startpage</option></select></label>
+            <label class="setting"><span><strong>Open in new tabs</strong><small>Keep Orvian open while browsing</small></span><input id="new-tab-setting" type="checkbox" /></label>
+          </div>
+        </section>
+        <section class="settings-panel" data-settings-panel="appearance">
+          <p class="dialog-kicker">PERSONALIZE</p><h3>Appearance</h3>
+          <div class="settings-card">
+            <label class="setting"><span><strong>Color style</strong><small>Choose Orvian’s interface tone</small></span><select id="theme-setting"><option value="midnight">Midnight</option><option value="obsidian">Obsidian</option><option value="graphite">Graphite</option></select></label>
+            <label class="setting range-setting"><span><strong>Background brightness</strong><small>Adjust the animated banner</small></span><input id="background-setting" type="range" min="20" max="100" step="5" /></label>
+            <label class="setting"><span><strong>Reduce motion</strong><small>Disable animation and video</small></span><input id="motion-setting" type="checkbox" /></label>
+          </div>
+        </section>
+        <section class="settings-panel" data-settings-panel="privacy">
+          <p class="dialog-kicker">LOCAL & PRIVATE</p><h3>Privacy</h3>
+          <div class="settings-card">
+            <label class="setting"><span><strong>Prefer HTTPS</strong><small>Upgrade typed http:// addresses</small></span><input id="https-setting" type="checkbox" /></label>
+            <label class="setting"><span><strong>Remove tracking parameters</strong><small>Strip common tracking tags from typed URLs</small></span><input id="tracking-setting" type="checkbox" /></label>
+          </div>
+          <p class="settings-help">Orvian stores these preferences only in this browser.</p>
+        </section>
+        <section class="settings-panel" data-settings-panel="data">
+          <p class="dialog-kicker">STORAGE</p><h3>Your data</h3>
+          <div class="settings-card data-card"><div><strong>Reset Orvian</strong><small>Remove bookmarks, profile, and all preferences from this browser.</small></div><button id="settings-clear-data" class="danger-button" type="button">Clear local data</button></div>
+        </section>
+      </div>
+    </dialog>
     <dialog id="account-dialog"><form method="dialog"><button class="close" aria-label="Close">×</button></form><p class="dialog-kicker">LOCAL PROFILE</p><h2>Account</h2><p class="muted">Your profile stays in this browser and is never uploaded.</p><label class="field">Display name<input id="display-name" maxlength="30" placeholder="Your name" /></label><button id="save-profile" class="primary" type="button">Save locally</button></dialog>
     <dialog id="tabs-dialog"><form method="dialog"><button class="close" aria-label="Close">×</button></form><p class="dialog-kicker">RECENT</p><h2>Tabs</h2><p class="muted">Orvian opens ordinary browser tabs. Use your browser’s tab bar to manage them.</p></dialog>
     <div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
