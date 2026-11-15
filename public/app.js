@@ -651,6 +651,11 @@ document.querySelector('#chat-form').addEventListener('submit',async event=>{
 // Member presence and editable profiles
 const membersList=document.querySelector('#members-list');
 const memberProfileDialog=document.querySelector('#member-profile-dialog');
+memberProfileDialog.addEventListener('click',event=>{
+  const rect=memberProfileDialog.getBoundingClientRect();
+  const outside=event.clientX<rect.left||event.clientX>rect.right||event.clientY<rect.top||event.clientY>rect.bottom;
+  if(outside)memberProfileDialog.close();
+});
 function openMemberProfile(member){
   const effect=document.querySelector('#member-profile-effect');effect.className='member-profile-effect effect-'+member.effect;
   const avatar=document.querySelector('#member-profile-avatar');avatar.style.backgroundImage=member.avatar?`url("${member.avatar}")`:'';
