@@ -663,7 +663,7 @@ memberProfileDialog.addEventListener('click',event=>{
   if(outside)memberProfileDialog.close();
 });
 function openMemberProfile(member){
-  const effect=document.querySelector('#member-profile-effect');effect.className='member-profile-effect effect-'+member.effect;
+  const effect=document.querySelector('#member-profile-effect');effect.className='member-profile-effect effect-'+member.effect;effect.style.backgroundImage=member.banner?`linear-gradient(rgba(0,0,0,.08),rgba(0,0,0,.3)),url("${member.banner}")`:'';effect.style.backgroundSize='cover';effect.style.backgroundPosition='center';
   const avatar=document.querySelector('#member-profile-avatar');avatar.style.backgroundImage=member.avatar?`url("${member.avatar}")`:'';
   avatar.textContent=member.avatar?'':(member.displayName||member.username).charAt(0).toUpperCase();
   document.querySelector('#member-profile-name').textContent=member.displayName;
@@ -682,8 +682,10 @@ const profileBio=document.querySelector('#profile-bio');
 const profileStatus=document.querySelector('#profile-status');
 const profileEffect=document.querySelector('#profile-effect');
 const profileAvatarInput=document.querySelector('#profile-avatar-input');
+const profileBannerInput=document.querySelector('#profile-banner-input');
 const profileMessage=document.querySelector('#profile-message');
 let pendingProfileAvatar=undefined;
+let pendingProfileBanner=undefined;
 let memberPollTimer=0;
 function avatarElement(member,className='member-avatar'){
   if(member.avatar){const image=document.createElement('img');image.className=className;image.src=member.avatar;image.alt='';return image}
@@ -716,6 +718,7 @@ async function sendHeartbeat(){
 function openProfileEditor(){
   if(!authUser)return;
   pendingProfileAvatar=authUser.avatar;
+  pendingProfileBanner=authUser.banner;
   profileDisplayName.value=authUser.displayName||authUser.username;
   profileBio.value=authUser.bio||'';
   profileStatus.value=authUser.status||'online';
@@ -724,11 +727,16 @@ function openProfileEditor(){
 }
 function updateProfilePreview(){
   const preview=document.querySelector('.profile-preview');preview.className='profile-preview effect-'+profileEffect.value;
+  const banner=document.querySelector('#profile-preview-banner');banner.style.backgroundImage=pendingProfileBanner?`url("${pendingProfileBanner}")`:'';
   const avatar=document.querySelector('#profile-preview-avatar');
   avatar.style.backgroundImage=pendingProfileAvatar?`url("${pendingProfileAvatar}")`:'';
   avatar.style.backgroundSize='cover';avatar.textContent=pendingProfileAvatar?'':(profileDisplayName.value||authUser?.username||'O').charAt(0).toUpperCase();
   document.querySelector('#profile-preview-name').textContent=profileDisplayName.value||authUser?.username||'Member';
   document.querySelector('#profile-preview-status').textContent=profileStatus.options[profileStatus.selectedIndex].text;
+}
+async function compressBannerImage(file){
+  const bitmap=await createImageBitmap(file);const canvas=document.createElement('canvas');canvas.width=600;canvas.height=200;
+  const context=canvas.getContext('2d');const scale=Math.max(600/bitmap.width,200/bitmap.height);const width=bitmap.width*scale,height=bitmap.height*scale;context.drawImage(bitmap,(600-width)/2,(200-height)/2,width,height);bitmap.close();return canvas.toDataURL('image/jpeg',.72);
 }
 async function compressProfileImage(file){
   const bitmap=await createImageBitmap(file);const canvas=document.createElement('canvas');canvas.width=128;canvas.height=128;
@@ -738,12 +746,14 @@ async function compressProfileImage(file){
 }
 profileAvatarInput.addEventListener('change',async()=>{const file=profileAvatarInput.files[0];if(!file)return;profileMessage.textContent='Processing picture…';try{pendingProfileAvatar=await compressProfileImage(file);profileMessage.textContent='';updateProfilePreview()}catch{profileMessage.textContent='Unable to use that image.'}});
 document.querySelector('#profile-remove-avatar').addEventListener('click',()=>{pendingProfileAvatar=null;profileAvatarInput.value='';updateProfilePreview()});
+profileBannerInput.addEventListener('change',async()=>{const file=profileBannerInput.files[0];if(!file)return;profileMessage.textContent='Processing banner…';try{pendingProfileBanner=await compressBannerImage(file);profileMessage.textContent='';updateProfilePreview()}catch{profileMessage.textContent='Unable to use that banner.'}});
+document.querySelector('#profile-remove-banner').addEventListener('click',()=>{pendingProfileBanner=null;profileBannerInput.value='';updateProfilePreview()});
 profileDisplayName.addEventListener('input',updateProfilePreview);profileStatus.addEventListener('change',updateProfilePreview);profileEffect.addEventListener('change',updateProfilePreview);
 document.querySelector('#edit-chat-profile').addEventListener('click',openProfileEditor);
 profileForm.addEventListener('submit',async event=>{
   event.preventDefault();profileMessage.textContent='Saving…';
   try{
-    const response=await fetch('/api/account/profile',{method:'PATCH',headers:{'Content-Type':'application/json'},credentials:'same-origin',body:JSON.stringify({displayName:profileDisplayName.value,bio:profileBio.value,avatar:pendingProfileAvatar,status:profileStatus.value,effect:profileEffect.value})});
+    const response=await fetch('/api/account/profile',{method:'PATCH',headers:{'Content-Type':'application/json'},credentials:'same-origin',body:JSON.stringify({displayName:profileDisplayName.value,bio:profileBio.value,avatar:pendingProfileAvatar,banner:pendingProfileBanner,status:profileStatus.value,effect:profileEffect.value})});
     const data=await response.json();if(!response.ok)throw new Error(data.error||'Unable to save profile.');
     authUser=data.user;renderAuthState();profileDialog.close();openChat();loadMembers();notify('Profile updated');
   }catch(error){profileMessage.textContent=error.message}
