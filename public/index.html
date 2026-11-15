@@ -244,10 +244,9 @@
     <dialog id="profile-dialog" class="profile-dialog">
       <form method="dialog"><button class="close" aria-label="Close">×</button></form>
       <p class="dialog-kicker">CHAT PROFILE</p><h2>Edit profile</h2>
-      <div class="profile-preview"><span id="profile-preview-avatar">O</span><div><strong id="profile-preview-name">Member</strong><small id="profile-preview-status">Online</small></div></div>
+      <div class="profile-preview"><div id="profile-preview-banner" class="profile-preview-banner"></div><span id="profile-preview-avatar">O</span><div><strong id="profile-preview-name">Member</strong><small id="profile-preview-status">Online</small></div></div>
       <form id="profile-form" class="profile-form">
-        <label class="field">Profile picture<input id="profile-avatar-input" type="file" accept="image/png,image/jpeg,image/webp" /></label>
-        <button id="profile-remove-avatar" class="profile-secondary" type="button">Remove picture</button>
+        <div class="profile-media-fields"><label class="field">Profile picture<input id="profile-avatar-input" type="file" accept="image/png,image/jpeg,image/webp" /></label><button id="profile-remove-avatar" class="profile-secondary" type="button">Remove picture</button></div><div class="profile-media-fields"><label class="field">Profile banner<input id="profile-banner-input" type="file" accept="image/png,image/jpeg,image/webp" /></label><button id="profile-remove-banner" class="profile-secondary" type="button">Remove banner</button></div>
         <label class="field">Display name<input id="profile-display-name" maxlength="32" required /></label>
         <label class="field">Bio<textarea id="profile-bio" maxlength="160" rows="3" placeholder="Tell the community about yourself"></textarea></label>
         <div class="profile-row"><label class="field">Status<select id="profile-status"><option value="online">Online</option><option value="idle">Idle</option><option value="dnd">Do Not Disturb</option><option value="invisible">Invisible</option></select></label><label class="field">Profile effect<select id="profile-effect"><option value="none">None</option><option value="silver">Silver Glow</option><option value="pulse">Pulse</option><option value="sparkle">Sparkle</option></select></label></div>
