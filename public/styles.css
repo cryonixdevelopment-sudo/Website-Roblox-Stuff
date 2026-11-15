@@ -616,3 +616,36 @@ html.music-disabled .music-player { display:none; }
   .music-meter i { width:4px; }
   .music-meta span { display:block; }
 }
+
+
+/* Detached bottom music transport */
+.music-transport {
+  position:fixed;
+  z-index:18;
+  left:50%;
+  bottom:18px;
+  width:min(390px,calc(100vw - 340px));
+  transform:translateX(-50%);
+  opacity:0;
+  pointer-events:none;
+  transition:opacity .4s ease;
+}
+.music-player.visible + .music-transport {
+  opacity:1;
+  pointer-events:auto;
+}
+.music-transport .music-controls {
+  justify-content:center;
+  margin:0 0 4px;
+}
+.music-transport .music-timeline {
+  grid-template-columns:34px 1fr 34px;
+}
+.viewing .music-transport { display:none; }
+html.music-disabled .music-transport { display:none; }
+@media (max-width:900px) {
+  .music-transport { width:min(340px,calc(100vw - 40px)); bottom:62px; }
+}
+@media (max-width:700px) {
+  .music-transport { width:min(280px,calc(100vw - 28px)); bottom:66px; }
+}
