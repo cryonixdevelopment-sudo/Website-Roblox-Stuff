@@ -220,10 +220,27 @@ const sidePosterSources=[
   '/backgrounds/orvian-10.webp'
 ];
 const sidePosterImages=[...document.querySelectorAll('.side-art img')];
-let sidePosterIndex=0;
+let sidePosterDeck=[];
+let previousPosterPair=[];
+function shufflePosters(){
+  const deck=[...sidePosterSources];
+  for(let index=deck.length-1;index>0;index--){
+    const swapIndex=Math.floor(Math.random()*(index+1));
+    [deck[index],deck[swapIndex]]=[deck[swapIndex],deck[index]];
+  }
+  if(previousPosterPair.includes(deck[0])||previousPosterPair.includes(deck[1])){
+    const safeStart=deck.findIndex((source,index)=>index>1&&!previousPosterPair.includes(source));
+    if(safeStart>1)[deck[0],deck[safeStart]]=[deck[safeStart],deck[0]];
+    const secondStart=deck.findIndex((source,index)=>index>1&&!previousPosterPair.includes(source)&&source!==deck[0]);
+    if(secondStart>1)[deck[1],deck[secondStart]]=[deck[secondStart],deck[1]];
+  }
+  sidePosterDeck=deck;
+}
 function rotateSidePosters(){
-  sidePosterImages.forEach((image,offset)=>{image.src=sidePosterSources[(sidePosterIndex+offset)%sidePosterSources.length]});
-  sidePosterIndex=(sidePosterIndex+2)%sidePosterSources.length;
+  if(sidePosterDeck.length<2)shufflePosters();
+  const pair=sidePosterDeck.splice(0,2);
+  sidePosterImages.forEach((image,index)=>{image.src=pair[index]});
+  previousPosterPair=pair;
 }
 sidePosterSources.forEach(source=>{const image=new Image();image.src=source});
 rotateSidePosters();
