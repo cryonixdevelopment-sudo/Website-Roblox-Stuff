@@ -205,3 +205,21 @@ function updateLocalClock(){
 updateLocalClock();
 setInterval(updateLocalClock,15000);
 document.addEventListener('visibilitychange',()=>{if(!document.hidden)updateLocalClock()});
+
+
+const sidePosterSources=[
+  '/backgrounds/orvian-01.webp',
+  '/backgrounds/orvian-02.webp',
+  '/backgrounds/orvian-03.webp',
+  '/backgrounds/orvian-04.webp',
+  '/backgrounds/orvian-05.webp'
+];
+const sidePosterImages=[...document.querySelectorAll('.side-art img')];
+let sidePosterIndex=0;
+function rotateSidePosters(){
+  sidePosterImages.forEach((image,offset)=>{image.src=sidePosterSources[(sidePosterIndex+offset)%sidePosterSources.length]});
+  sidePosterIndex=(sidePosterIndex+2)%sidePosterSources.length;
+}
+sidePosterSources.forEach(source=>{const image=new Image();image.src=source});
+rotateSidePosters();
+if(!window.matchMedia('(prefers-reduced-motion: reduce)').matches)setInterval(rotateSidePosters,9000);
