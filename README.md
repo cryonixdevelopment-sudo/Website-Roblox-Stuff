@@ -64,10 +64,3 @@ HTTPS is required in production because Scramjet relies on a service worker and 
 ## License
 
 MIT
-
-
-## Experimental connection compatibility test
-
-**General → Connection mode** offers two transports: Standard (libcurl, unchanged default) and Experimental (Epoxy). Refresh Orvian after switching to let Scramjet recreate its transport before browsing. Epoxy is a transport alternative only; it does not bypass verification requirements, and there is no guarantee that Cloudflare Turnstile or other challenge systems will work through a proxy.
-
-The pre-experiment version is retained on `backup/pre-cloudflare-transport-test`. If the experiment causes problems, restore that commit or switch back to Standard (libcurl).

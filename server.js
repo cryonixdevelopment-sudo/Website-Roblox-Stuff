@@ -5,7 +5,6 @@ import express from 'express';
 import {server as wisp,logging} from '@mercuryworkshop/wisp-js/server';
 import {scramjetPath} from '@mercuryworkshop/scramjet/path';
 import {libcurlPath} from '@mercuryworkshop/libcurl-transport';
-import {epoxyPath} from '@mercuryworkshop/epoxy-transport';
 import {baremuxPath} from '@mercuryworkshop/bare-mux/node';
 
 const directory=path.dirname(fileURLToPath(import.meta.url));
@@ -25,7 +24,6 @@ app.get('/health',(_req,res)=>{
 });
 app.use('/scram/',express.static(scramjetPath));
 app.use('/libcurl/',express.static(libcurlPath));
-app.use('/epoxy/',express.static(epoxyPath));
 app.use('/baremux/',express.static(baremuxPath));
 app.use(express.static(path.join(directory,'public')));
 // Do not return Orvian's homepage for an unhandled proxy navigation.
