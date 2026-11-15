@@ -1,7 +1,7 @@
 {
   "name": "Orvian",
   "short_name": "Orvian",
-  "description": "A web proxy optimized for Windows and Chromebooks.",
+  "description": "A personal start page optimized for Windows and Chromebooks.",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#090b10",

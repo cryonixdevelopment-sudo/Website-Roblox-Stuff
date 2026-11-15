@@ -2,79 +2,59 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-    <meta name="theme-color" content="#090b10" />
-    <meta name="description" content="Orvian — a web proxy optimized for Windows and Chromebooks." />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#07070a" />
+    <meta name="description" content="Orvian — a personal start page for Windows and ChromeOS." />
     <title>Orvian</title>
     <link rel="icon" type="image/png" href="/favicon.png" />
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
     <link rel="manifest" href="/manifest.webmanifest" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Great+Vibes&family=Montserrat:wght@400;500;600;700&display=swap" rel="stylesheet" />
     <link rel="stylesheet" href="/styles.css" />
-    <script src="/uv/uv.bundle.js" defer></script>
-    <script src="/uv.config.js" defer></script>
     <script src="/app.js" defer></script>
   </head>
-  <body class="home-mode">
-    <header class="topbar">
-      <a class="brand" href="/" aria-label="Orvian home">
-        <img class="brand-mark" src="/icon-192.png" alt="" />
-        <span>Orvian</span>
-      </a>
-      <nav class="controls" aria-label="Browser controls">
-        <button id="back" class="icon-button" type="button" aria-label="Go back">←</button>
-        <button id="forward" class="icon-button" type="button" aria-label="Go forward">→</button>
-        <button id="reload" class="icon-button" type="button" aria-label="Reload">↻</button>
-        <button id="home" class="icon-button" type="button" aria-label="Home">⌂</button>
-      </nav>
-      <form id="address-form" class="address-form" autocomplete="off">
-        <label class="sr-only" for="address">Enter a URL or search</label>
-        <span class="secure-dot" aria-hidden="true"></span>
-        <input id="address" type="text" inputmode="url" placeholder="Search or enter a URL" autocapitalize="none" spellcheck="false" />
-        <button type="submit">Go</button>
-      </form>
-    </header>
-    <main>
-      <section id="welcome" class="welcome">
-        <div class="glow" aria-hidden="true"></div>
-        <div class="home-shell">
-          <div class="home-identity">
-            <img src="/icon-192.png" alt="" />
-            <h1><span class="orvian-word" aria-label="Orvian"><span class="orvian-letter" style="--letter: 0" aria-hidden="true">O</span><span class="orvian-letter" style="--letter: 1" aria-hidden="true">r</span><span class="orvian-letter" style="--letter: 2" aria-hidden="true">v</span><span class="orvian-letter" style="--letter: 3" aria-hidden="true">i</span><span class="orvian-letter" style="--letter: 4" aria-hidden="true">a</span><span class="orvian-letter" style="--letter: 5" aria-hidden="true">n</span></span></h1>
-          </div>
-          <form id="hero-form" class="hero-search" autocomplete="off">
-            <label class="sr-only" for="hero-address">Enter a URL or search</label>
-            <svg aria-hidden="true" viewBox="0 0 24 24"><path d="m21 21-4.6-4.6m2.1-5.15a7.25 7.25 0 1 1-14.5 0 7.25 7.25 0 0 1 14.5 0Z"/></svg>
-            <input id="hero-address" type="text" inputmode="url" placeholder="Search or enter URL..." autocapitalize="none" spellcheck="false" />
-            <button type="submit" aria-label="Open">→</button>
-          </form>
+  <body>
+    <main class="dashboard">
+      <section class="launcher" aria-labelledby="brand">
+        <h1 id="brand" aria-label="Orvian"><span style="--i:0">O</span><span style="--i:1">r</span><span style="--i:2">v</span><span style="--i:3">i</span><span style="--i:4">a</span><span style="--i:5">n</span></h1>
 
-          <div class="shortcut-grid" aria-label="Quick links">
-            <button class="shortcut" type="button" data-target="https://www.google.com"><span class="shortcut-icon"><img src="/icons/google.svg" alt="" /></span><span>Google</span></button>
-            <button class="shortcut" type="button" data-target="https://open.spotify.com"><span class="shortcut-icon"><img src="/icons/spotify.svg" alt="" /></span><span>Spotify</span></button>
-            <button class="shortcut" type="button" data-target="https://www.youtube.com"><span class="shortcut-icon"><img src="/icons/youtube.svg" alt="" /></span><span>YouTube</span></button>
-            <button class="shortcut" type="button" data-target="https://www.roblox.com"><span class="shortcut-icon"><img src="/icons/roblox.svg" alt="" /></span><span>Roblox</span></button>
-            <button class="shortcut" type="button" data-target="https://www.wikipedia.org"><span class="shortcut-icon"><img src="/icons/wikipedia.svg" alt="" /></span><span>Wikipedia</span></button>
-            <button class="shortcut" type="button" data-target="https://github.com"><span class="shortcut-icon"><img src="/icons/github.svg" alt="" /></span><span>GitHub</span></button>
-            <button id="add-shortcut" class="shortcut add-shortcut" type="button"><span class="shortcut-icon">＋</span><span>Add shortcut</span></button>
-          </div>
+        <form id="search-form" class="search" role="search">
+          <svg aria-hidden="true" viewBox="0 0 24 24"><path d="m21 21-4.5-4.5m2-5.25a7.25 7.25 0 1 1-14.5 0 7.25 7.25 0 0 1 14.5 0Z"/></svg>
+          <label class="sr-only" for="search-input">Search DuckDuckGo or enter a URL</label>
+          <input id="search-input" placeholder="Search or enter URL..." autocomplete="off" autofocus />
+        </form>
 
-          <button class="discover-chip" type="button" data-target="https://trends.google.com"><span aria-hidden="true">⌁</span> Discover</button>
-          <p class="notice">For authorized use · Optimized for Windows and ChromeOS</p>
-          <nav class="home-dock" aria-label="Orvian">
-            <button type="button" data-focus-search><span>⌕</span>Search</button>
-            <button type="button" data-target="https://www.google.com/bookmarks"><span>◇</span>Links</button>
-            <button type="button" data-focus-search><span>⚙</span>Settings</button>
-            <button type="button" data-clear-data class="danger"><span>⌫</span>Clear data</button>
-          </nav>
+        <div id="shortcut-grid" class="shortcut-grid">
+          <a class="tile" href="https://www.instagram.com/"><span class="tile-icon brand-icon"><img src="/icons/instagram.svg" alt="" /></span><span>Instagram</span></a>
+          <a class="tile" href="https://open.spotify.com/"><span class="tile-icon brand-icon"><img src="/icons/spotify.svg" alt="" /></span><span>Spotify</span></a>
+          <a class="tile" href="https://www.roblox.com/"><span class="tile-icon brand-icon"><img src="/icons/roblox.svg" alt="" /></span><span>Roblox</span></a>
+          <a class="tile" href="https://poki.com/"><span class="tile-icon"><svg viewBox="0 0 24 24"><path d="M7 9h10a4 4 0 0 1 3.8 5.2l-1.1 3.3a2 2 0 0 1-3.2.9L14 16h-4l-2.5 2.4a2 2 0 0 1-3.2-.9l-1.1-3.3A4 4 0 0 1 7 9Z"/><path d="M8 12v3m-1.5-1.5h3M16.5 12.8h.01m1.49 1.4h.01"/></svg></span><span>Play</span></a>
+          <a class="tile" href="https://www.youtube.com/"><span class="tile-icon"><svg viewBox="0 0 24 24"><rect x="4" y="3" width="16" height="18" rx="2"/><path d="M8 3v18m8-18v18M4 8h4m8 0h4M4 16h4m8 0h4"/></svg></span><span>Movies</span></a>
+          <a class="tile" href="https://www.crunchyroll.com/"><span class="tile-icon"><svg viewBox="0 0 24 24"><rect x="3" y="6" width="18" height="14" rx="2"/><path d="m8 2 4 4 4-4M8 15h.01"/></svg></span><span>Anime</span></a>
+          <a class="tile" href="https://music.youtube.com/"><span class="tile-icon"><svg viewBox="0 0 24 24"><path d="M9 18V5l10-2v13M9 9l10-2"/><circle cx="6" cy="18" r="3"/><circle cx="16" cy="16" r="3"/></svg></span><span>Music</span></a>
+          <button class="tile" type="button" data-panel="links-dialog"><span class="tile-icon"><svg viewBox="0 0 24 24"><path d="M5 11V7a3 3 0 0 1 3-3h8a3 3 0 0 1 3 3v4M4 11h16a2 2 0 0 1 2 2v5H2v-5a2 2 0 0 1 2-2Zm0 7v3m16-3v3"/></svg></span><span>Lounge</span></button>
+          <a class="tile" href="https://discord.com/app"><span class="tile-icon"><svg viewBox="0 0 24 24"><path d="M21 12a8 8 0 0 1-8 8H8l-5 2 1.7-4A8.5 8.5 0 1 1 21 12Z"/></svg></span><span>Chat</span></a>
+          <button id="add-bookmark" class="tile add-tile" type="button"><span class="tile-icon">＋</span><span>Add bookmark</span></button>
         </div>
+
+        <a class="trending" href="https://trends.google.com/trending"><span>♨</span> Trending</a>
       </section>
-      <section id="browser" class="browser" hidden>
-        <iframe id="viewport" title="Proxied website" allow="fullscreen; clipboard-read; clipboard-write" referrerpolicy="no-referrer"></iframe>
-      </section>
-      <div id="status" class="status" role="status" aria-live="polite" hidden></div>
-      <div id="compatibility" class="compatibility" role="note" hidden>
-        Limited support on this device. Orvian is designed for Windows and ChromeOS.
-      </div>
+
+      <nav class="utility-dock" aria-label="Utilities">
+        <button type="button" data-panel="links-dialog"><span>↗</span> Links</button>
+        <button type="button" data-panel="settings-dialog"><span>⚙</span> Settings</button>
+        <button type="button" data-panel="account-dialog"><span>♙</span> Account</button>
+        <button id="clear-data" class="danger" type="button"><span>♜</span> Clear data</button>
+        <button type="button" data-panel="tabs-dialog"><span>▱</span> Tabs</button>
+      </nav>
     </main>
+
+    <dialog id="links-dialog"><form method="dialog"><button class="close" aria-label="Close">×</button></form><p class="dialog-kicker">ORVIAN</p><h2>Your links</h2><div id="saved-links" class="saved-links"></div><button id="dialog-add-link" class="primary" type="button">Add a link</button></dialog>
+    <dialog id="settings-dialog"><form method="dialog"><button class="close" aria-label="Close">×</button></form><p class="dialog-kicker">PERSONALIZE</p><h2>Settings</h2><label class="setting"><span>Search engine</span><select id="search-engine"><option value="ddg">DuckDuckGo</option><option value="google">Google</option><option value="bing">Bing</option></select></label><label class="setting"><span>Open links in new tabs</span><input id="new-tab-setting" type="checkbox" /></label><label class="setting"><span>Reduce motion</span><input id="motion-setting" type="checkbox" /></label></dialog>
+    <dialog id="account-dialog"><form method="dialog"><button class="close" aria-label="Close">×</button></form><p class="dialog-kicker">LOCAL PROFILE</p><h2>Account</h2><p class="muted">Your profile stays in this browser and is never uploaded.</p><label class="field">Display name<input id="display-name" maxlength="30" placeholder="Your name" /></label><button id="save-profile" class="primary" type="button">Save locally</button></dialog>
+    <dialog id="tabs-dialog"><form method="dialog"><button class="close" aria-label="Close">×</button></form><p class="dialog-kicker">RECENT</p><h2>Tabs</h2><p class="muted">Orvian opens ordinary browser tabs. Use your browser’s tab bar to manage them.</p></dialog>
+    <div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
   </body>
 </html>

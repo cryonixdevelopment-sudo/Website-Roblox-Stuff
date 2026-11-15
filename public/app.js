@@ -1,94 +1,69 @@
-const addressForm = document.querySelector('#address-form');
-const heroForm = document.querySelector('#hero-form');
-const address = document.querySelector('#address');
-const heroAddress = document.querySelector('#hero-address');
-const welcome = document.querySelector('#welcome');
-const browser = document.querySelector('#browser');
-const viewport = document.querySelector('#viewport');
-const status = document.querySelector('#status');
-const compatibility = document.querySelector('#compatibility');
+const storageKeys={links:'orvian-links',engine:'orvian-search-engine',newTabs:'orvian-new-tabs',reduceMotion:'orvian-reduce-motion',profile:'orvian-profile'};
+const engines={ddg:'https://duckduckgo.com/?q=',google:'https://www.google.com/search?q=',bing:'https://www.bing.com/search?q='};
+const searchForm=document.querySelector('#search-form');
+const searchInput=document.querySelector('#search-input');
+const searchEngine=document.querySelector('#search-engine');
+const newTabSetting=document.querySelector('#new-tab-setting');
+const motionSetting=document.querySelector('#motion-setting');
+const savedLinks=document.querySelector('#saved-links');
+const displayName=document.querySelector('#display-name');
+const toast=document.querySelector('#toast');
+let toastTimer;
 
-const platform = navigator.userAgentData?.platform || navigator.platform || navigator.userAgent;
-compatibility.hidden = /Windows|Win32|Win64|CrOS/i.test(platform);
-
-function message(text) {
-  status.textContent = text;
-  status.hidden = !text;
+function readLinks(){try{return JSON.parse(localStorage.getItem(storageKeys.links)||'[]')}catch{return[]}}
+function normalize(value){
+  const input=value.trim();
+  if(!input)return null;
+  if(/^https?:\/\//i.test(input))return input;
+  if(/^[\w-]+(\.[\w-]+)+([/:?#].*)?$/i.test(input))return `https://${input}`;
+  const engine=localStorage.getItem(storageKeys.engine)||'ddg';
+  return `${engines[engine]||engines.ddg}${encodeURIComponent(input)}`;
+}
+function openUrl(value){
+  const url=normalize(value);
+  if(!url)return;
+  if(localStorage.getItem(storageKeys.newTabs)==='true')window.open(url,'_blank','noopener,noreferrer');
+  else window.location.assign(url);
+}
+function notify(text){
+  clearTimeout(toastTimer);
+  toast.textContent=text;toast.hidden=false;
+  toastTimer=setTimeout(()=>{toast.hidden=true},2500);
+}
+function renderLinks(){
+  const links=readLinks();savedLinks.replaceChildren();
+  if(!links.length){const empty=document.createElement('p');empty.className='muted';empty.textContent='No saved links yet.';savedLinks.append(empty);return}
+  links.forEach((link,index)=>{
+    const row=document.createElement('div');row.className='saved-link';
+    const anchor=document.createElement('a');anchor.href=link.url;anchor.textContent=link.name;
+    const remove=document.createElement('button');remove.type='button';remove.textContent='Remove';
+    remove.addEventListener('click',()=>{const updated=readLinks();updated.splice(index,1);localStorage.setItem(storageKeys.links,JSON.stringify(updated));renderLinks()});
+    row.append(anchor,remove);savedLinks.append(row);
+  });
+}
+function addLink(){
+  const name=window.prompt('Bookmark name:');if(!name)return;
+  const rawUrl=window.prompt('Website URL:');if(!rawUrl)return;
+  const url=normalize(rawUrl);if(!url)return;
+  const links=readLinks();links.push({name:name.trim().slice(0,40),url});
+  localStorage.setItem(storageKeys.links,JSON.stringify(links.slice(-30)));renderLinks();notify('Bookmark saved');
 }
 
-function normalize(input) {
-  const value = input.trim();
-  if (!value) return null;
-  if (/^https?:\/\//i.test(value)) return value;
-  if (/^[\w-]+(\.[\w-]+)+([/:?#].*)?$/i.test(value)) return `https://${value}`;
-  return `https://duckduckgo.com/?q=${encodeURIComponent(value)}`;
-}
-
-async function openTarget(raw) {
-  const target = normalize(raw);
-  if (!target) return;
-  message('');
-  if (!('serviceWorker' in navigator)) {
-    message('This browser does not support the required service worker.');
-    return;
-  }
-  try {
-    await navigator.serviceWorker.register('/sw.js', { scope: '/' });
-    await navigator.serviceWorker.ready;
-    address.value = target;
-    viewport.src = `${__uv$config.prefix}${__uv$config.encodeUrl(target)}`;
-    document.body.classList.remove('home-mode');
-    welcome.hidden = true;
-    browser.hidden = false;
-  } catch (error) {
-    console.error(error);
-    message('Could not start the proxy. Reload the page and try again.');
-  }
-}
-
-addressForm.addEventListener('submit', (event) => {
-  event.preventDefault();
-  openTarget(address.value);
+searchForm.addEventListener('submit',event=>{event.preventDefault();openUrl(searchInput.value)});
+document.querySelectorAll('[data-panel]').forEach(button=>button.addEventListener('click',()=>document.querySelector(`#${button.dataset.panel}`)?.showModal()));
+document.querySelector('#add-bookmark').addEventListener('click',addLink);
+document.querySelector('#dialog-add-link').addEventListener('click',addLink);
+searchEngine.value=localStorage.getItem(storageKeys.engine)||'ddg';
+newTabSetting.checked=localStorage.getItem(storageKeys.newTabs)==='true';
+motionSetting.checked=localStorage.getItem(storageKeys.reduceMotion)==='true';
+document.documentElement.classList.toggle('reduce-motion',motionSetting.checked);
+searchEngine.addEventListener('change',()=>localStorage.setItem(storageKeys.engine,searchEngine.value));
+newTabSetting.addEventListener('change',()=>localStorage.setItem(storageKeys.newTabs,String(newTabSetting.checked)));
+motionSetting.addEventListener('change',()=>{localStorage.setItem(storageKeys.reduceMotion,String(motionSetting.checked));document.documentElement.classList.toggle('reduce-motion',motionSetting.checked)});
+displayName.value=localStorage.getItem(storageKeys.profile)||'';
+document.querySelector('#save-profile').addEventListener('click',()=>{localStorage.setItem(storageKeys.profile,displayName.value.trim());notify('Profile saved locally')});
+document.querySelector('#clear-data').addEventListener('click',()=>{
+  if(!window.confirm('Clear Orvian bookmarks, settings, and profile from this browser?'))return;
+  Object.values(storageKeys).forEach(key=>localStorage.removeItem(key));renderLinks();searchEngine.value='ddg';newTabSetting.checked=false;motionSetting.checked=false;displayName.value='';document.documentElement.classList.remove('reduce-motion');notify('Local data cleared');
 });
-heroForm.addEventListener('submit', (event) => {
-  event.preventDefault();
-  openTarget(heroAddress.value);
-});
-document.querySelector('#back').addEventListener('click', () => {
-  if (!browser.hidden) viewport.contentWindow.history.back();
-});
-document.querySelector('#forward').addEventListener('click', () => {
-  if (!browser.hidden) viewport.contentWindow.history.forward();
-});
-document.querySelector('#reload').addEventListener('click', () => {
-  if (!browser.hidden) viewport.contentWindow.location.reload();
-});
-document.querySelector('#home').addEventListener('click', () => {
-  viewport.src = 'about:blank';
-  browser.hidden = true;
-  welcome.hidden = false;
-  address.value = '';
-  document.body.classList.add('home-mode');
-  heroAddress.focus();
-});
-
-document.querySelectorAll('[data-target]').forEach((button) => {
-  button.addEventListener('click', () => openTarget(button.dataset.target));
-});
-
-document.querySelectorAll('[data-focus-search]').forEach((button) => {
-  button.addEventListener('click', () => heroAddress.focus());
-});
-
-document.querySelector('[data-clear-data]').addEventListener('click', async () => {
-  localStorage.clear();
-  sessionStorage.clear();
-  const registrations = await navigator.serviceWorker?.getRegistrations?.() || [];
-  await Promise.all(registrations.map((registration) => registration.unregister()));
-  message('Orvian site data cleared.');
-});
-
-document.querySelector('#add-shortcut').addEventListener('click', () => {
-  const target = window.prompt('Enter a website URL or search:');
-  if (target) openTarget(target);
-});
+renderLinks();

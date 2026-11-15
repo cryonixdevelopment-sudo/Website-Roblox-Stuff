@@ -1,5 +1,18 @@
 # Orvian
 
+The current public frontend is a static personal start page inspired by compact desktop browser dashboards. It provides direct web search, app shortcuts, local bookmarks, preferences, and a local-only profile. It does not proxy or relay browser traffic.
+
+## Free frontend hosting with GitHub Pages
+
+The included `.github/workflows/pages.yml` publishes the `public` directory.
+
+1. Open this repository on GitHub.
+2. Tap **Settings** → **Pages**.
+3. Under **Build and deployment**, choose **GitHub Actions** as the source.
+4. Open the **Actions** tab and select **Deploy Orvian frontend**.
+5. Tap **Run workflow** if it has not run automatically.
+6. After the deployment completes, GitHub shows the public Pages URL.
+
 A dark-themed web proxy optimized for Windows PCs and Chromebooks. macOS and mobile devices may work, but they are not officially supported. Orvian uses the open-source [Ultraviolet](https://github.com/titaniumnetwork-dev/Ultraviolet) web proxy with a [Bare server](https://github.com/tomphttp/bare-server-node) backend.
 
 This project does **not** include monitoring evasion, traffic disguising, or school-filter bypass features. Follow the rules of the network and websites you use.
