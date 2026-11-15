@@ -245,3 +245,20 @@ function rotateSidePosters(){
 sidePosterSources.forEach(source=>{const image=new Image();image.src=source});
 rotateSidePosters();
 if(!window.matchMedia('(prefers-reduced-motion: reduce)').matches)setInterval(rotateSidePosters,9000);
+
+
+// Silver pointer trail
+if(window.matchMedia('(pointer:fine)').matches&&!window.matchMedia('(prefers-reduced-motion:reduce)').matches){
+  let lastTrailAt=0;
+  window.addEventListener('pointermove',event=>{
+    const now=performance.now();
+    if(now-lastTrailAt<24)return;
+    lastTrailAt=now;
+    const particle=document.createElement('span');
+    particle.className='cursor-trail';
+    particle.style.left=`${event.clientX}px`;
+    particle.style.top=`${event.clientY}px`;
+    document.body.appendChild(particle);
+    particle.addEventListener('animationend',()=>particle.remove(),{once:true});
+  },{passive:true});
+}
