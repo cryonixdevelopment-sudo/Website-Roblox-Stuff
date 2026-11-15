@@ -620,3 +620,86 @@ document.querySelector('#chat-form').addEventListener('submit',async event=>{
     chatInput.value='';chatStatus.textContent='';loadChatMessages();
   }catch(error){chatStatus.textContent=error.message}
 });
+
+
+// Member presence and editable profiles
+const membersList=document.querySelector('#members-list');
+const profileDialog=document.querySelector('#profile-dialog');
+const profileForm=document.querySelector('#profile-form');
+const profileDisplayName=document.querySelector('#profile-display-name');
+const profileBio=document.querySelector('#profile-bio');
+const profileStatus=document.querySelector('#profile-status');
+const profileEffect=document.querySelector('#profile-effect');
+const profileAvatarInput=document.querySelector('#profile-avatar-input');
+const profileMessage=document.querySelector('#profile-message');
+let pendingProfileAvatar=undefined;
+let memberPollTimer=0;
+function avatarElement(member,className='member-avatar'){
+  if(member.avatar){const image=document.createElement('img');image.className=className;image.src=member.avatar;image.alt='';return image}
+  const fallback=document.createElement('span');fallback.className=className;fallback.textContent=(member.displayName||member.username).charAt(0).toUpperCase();return fallback;
+}
+function renderMembers(members){
+  membersList.replaceChildren();
+  document.querySelector('#member-count').textContent=String(members.length);
+  for(const group of [{title:'Online',members:members.filter(member=>member.status!=='offline')},{title:'Offline',members:members.filter(member=>member.status==='offline')}]){
+    const title=document.createElement('h3');title.className='member-group-title';title.textContent=group.title+' — '+group.members.length;membersList.append(title);
+    group.members.forEach(member=>{
+      const card=document.createElement('div');card.className='member-card '+member.status;
+      const wrap=document.createElement('span');wrap.className='member-avatar-wrap effect-'+member.effect;
+      wrap.append(avatarElement(member));const dot=document.createElement('i');dot.className='member-status-dot '+member.status;wrap.append(dot);
+      const info=document.createElement('span');const name=document.createElement('strong');name.textContent=member.displayName;
+      const detail=document.createElement('small');detail.textContent=member.role==='owner'?'Owner':member.status==='dnd'?'Do Not Disturb':member.status;
+      info.append(name,detail);card.append(wrap,info);membersList.append(card);
+    });
+  }
+}
+async function loadMembers(){
+  if(!authUser)return;
+  try{const response=await fetch('/api/chat/members',{credentials:'same-origin',cache:'no-store'});const data=await response.json();if(response.ok)renderMembers(data.members||[])}catch{}
+}
+async function sendHeartbeat(){
+  if(!authUser)return;
+  await fetch('/api/account/heartbeat',{method:'POST',credentials:'same-origin'}).catch(()=>{});
+}
+function openProfileEditor(){
+  if(!authUser)return;
+  pendingProfileAvatar=authUser.avatar;
+  profileDisplayName.value=authUser.displayName||authUser.username;
+  profileBio.value=authUser.bio||'';
+  profileStatus.value=authUser.status||'online';
+  profileEffect.value=authUser.effect||'none';
+  profileMessage.textContent='';updateProfilePreview();profileDialog.showModal();
+}
+function updateProfilePreview(){
+  const preview=document.querySelector('.profile-preview');preview.className='profile-preview effect-'+profileEffect.value;
+  const avatar=document.querySelector('#profile-preview-avatar');
+  avatar.style.backgroundImage=pendingProfileAvatar?`url("${pendingProfileAvatar}")`:'';
+  avatar.style.backgroundSize='cover';avatar.textContent=pendingProfileAvatar?'':(profileDisplayName.value||authUser?.username||'O').charAt(0).toUpperCase();
+  document.querySelector('#profile-preview-name').textContent=profileDisplayName.value||authUser?.username||'Member';
+  document.querySelector('#profile-preview-status').textContent=profileStatus.options[profileStatus.selectedIndex].text;
+}
+async function compressProfileImage(file){
+  const bitmap=await createImageBitmap(file);const canvas=document.createElement('canvas');canvas.width=128;canvas.height=128;
+  const context=canvas.getContext('2d');const scale=Math.max(128/bitmap.width,128/bitmap.height);
+  const width=bitmap.width*scale,height=bitmap.height*scale;context.drawImage(bitmap,(128-width)/2,(128-height)/2,width,height);
+  bitmap.close();return canvas.toDataURL('image/jpeg',.76);
+}
+profileAvatarInput.addEventListener('change',async()=>{const file=profileAvatarInput.files[0];if(!file)return;profileMessage.textContent='Processing picture…';try{pendingProfileAvatar=await compressProfileImage(file);profileMessage.textContent='';updateProfilePreview()}catch{profileMessage.textContent='Unable to use that image.'}});
+document.querySelector('#profile-remove-avatar').addEventListener('click',()=>{pendingProfileAvatar=null;profileAvatarInput.value='';updateProfilePreview()});
+profileDisplayName.addEventListener('input',updateProfilePreview);profileStatus.addEventListener('change',updateProfilePreview);profileEffect.addEventListener('change',updateProfilePreview);
+document.querySelector('#edit-chat-profile').addEventListener('click',openProfileEditor);
+profileForm.addEventListener('submit',async event=>{
+  event.preventDefault();profileMessage.textContent='Saving…';
+  try{
+    const response=await fetch('/api/account/profile',{method:'PATCH',headers:{'Content-Type':'application/json'},credentials:'same-origin',body:JSON.stringify({displayName:profileDisplayName.value,bio:profileBio.value,avatar:pendingProfileAvatar,status:profileStatus.value,effect:profileEffect.value})});
+    const data=await response.json();if(!response.ok)throw new Error(data.error||'Unable to save profile.');
+    authUser=data.user;renderAuthState();profileDialog.close();openChat();loadMembers();notify('Profile updated');
+  }catch(error){profileMessage.textContent=error.message}
+});
+const originalOpenChat=openChat;
+openChat=function(){
+  originalOpenChat();if(!authUser)return;
+  sendHeartbeat();loadMembers();clearInterval(memberPollTimer);memberPollTimer=setInterval(()=>{sendHeartbeat();loadMembers()},45000);
+};
+const originalCloseChat=closeChat;
+closeChat=function(){clearInterval(memberPollTimer);originalCloseChat()};

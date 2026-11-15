@@ -794,3 +794,45 @@ html.music-disabled .music-transport { display:none; }
   .chat-composer { margin:0 10px; }
   .chat-status { margin-left:12px; }
 }
+
+
+/* Chat members and editable profiles */
+.chat-view { grid-template-columns:240px minmax(0,1fr) 220px; }
+.chat-user { width:100%; position:relative; border:0; color:inherit; cursor:pointer; text-align:left; }
+.chat-user em { margin-left:auto; color:#686b74; font-size:.54rem; font-style:normal; opacity:0; }
+.chat-user:hover em { opacity:1; }
+.members-panel { min-width:0; min-height:0; display:flex; flex-direction:column; border-left:1px solid rgba(225,228,235,.1); background:linear-gradient(195deg,#121218,#0b0b10); }
+.members-panel>header { height:62px; display:flex; align-items:center; justify-content:space-between; padding:0 15px; border-bottom:1px solid rgba(225,228,235,.1); }
+.members-panel>header strong { font-size:.72rem; }
+.members-panel>header span { color:#747780; font-size:.6rem; }
+.members-list { min-height:0; overflow:auto; padding:12px 8px; }
+.member-group-title { margin:13px 7px 6px; color:#686b74; font-size:.52rem; letter-spacing:.1em; text-transform:uppercase; }
+.member-card { width:100%; display:grid; grid-template-columns:34px minmax(0,1fr); gap:9px; align-items:center; padding:7px; border:0; border-radius:8px; background:transparent; color:#a8abb4; text-align:left; }
+.member-avatar-wrap { position:relative; width:34px; height:34px; }
+.member-avatar,.profile-preview>span { width:34px; height:34px; display:grid; place-items:center; border-radius:50%; object-fit:cover; background:linear-gradient(145deg,#cfd2da,#555965); color:#101116; font-weight:700; }
+.member-status-dot { position:absolute; right:-1px; bottom:-1px; width:10px; height:10px; border:2px solid #101016; border-radius:50%; background:#555a64; }
+.member-status-dot.online { background:#61bd78; }.member-status-dot.idle { background:#d2a94d; }.member-status-dot.dnd { background:#d45f68; }.member-status-dot.offline { background:#555a64; }
+.member-card strong,.member-card small { display:block; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.member-card strong { color:#bfc1c8; font-size:.65rem; }.member-card small { margin-top:2px; color:#62656e; font-size:.52rem; }
+.member-card.offline { opacity:.58; }
+.effect-silver .member-avatar,.effect-silver.profile-preview>span { box-shadow:0 0 0 2px #cfd2da,0 0 15px rgba(222,225,233,.65); }
+.effect-pulse .member-avatar,.effect-pulse.profile-preview>span { animation:profile-pulse 1.8s ease-in-out infinite; }
+.effect-sparkle .member-avatar-wrap::before,.effect-sparkle.profile-preview::before { content:'✦'; position:absolute; z-index:2; top:-7px; right:-5px; color:#f0f1f4; text-shadow:0 0 8px #fff; animation:sparkle-pop 1.4s ease-in-out infinite alternate; }
+.profile-dialog { width:min(480px,calc(100% - 28px)); background:linear-gradient(145deg,rgba(35,36,43,.88),rgba(8,8,12,.82)); }
+.profile-preview { position:relative; display:flex; align-items:center; gap:12px; margin:12px 0 16px; padding:13px; border:1px solid rgba(220,223,231,.14); border-radius:12px; background:rgba(232,234,240,.05); }
+.profile-preview>span { width:48px; height:48px; font-size:1rem; }
+.profile-preview strong,.profile-preview small { display:block; }.profile-preview small { margin-top:3px; color:#8c8f98; font-size:.62rem; }
+.profile-form { display:grid; gap:4px; }
+.profile-form .field { align-items:stretch; flex-direction:column; gap:6px; margin:6px 0; font-size:.72rem; }
+.profile-form input,.profile-form textarea,.profile-form select { width:100%; border:1px solid #34313d; border-radius:9px; padding:9px 10px; background:#18171d; color:#ececf1; outline:none; resize:vertical; }
+.profile-row { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+.profile-secondary { justify-self:start; border:0; background:none; color:#9ea1aa; cursor:pointer; font-size:.62rem; }
+@keyframes profile-pulse { 50% { box-shadow:0 0 0 4px rgba(210,213,221,.12),0 0 17px rgba(210,213,221,.45); } }
+@keyframes sparkle-pop { from { opacity:.4; transform:scale(.75) rotate(-8deg); } to { opacity:1; transform:scale(1.15) rotate(8deg); } }
+@media (max-width:900px) { .chat-view { grid-template-columns:190px minmax(0,1fr) 180px; } }
+@media (max-width:700px) {
+  .chat-view { grid-template-columns:82px minmax(0,1fr); }
+  .members-panel { display:none; }
+  .profile-row { grid-template-columns:1fr; gap:0; }
+}
+@media (prefers-reduced-motion:reduce) { .effect-pulse .member-avatar,.effect-sparkle .member-avatar-wrap::before { animation:none; } }
