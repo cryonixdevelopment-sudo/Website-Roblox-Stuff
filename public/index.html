@@ -52,7 +52,7 @@
           </div>
           <div class="shortcut-divider" role="separator" aria-label="More shortcuts"></div>
           <div class="shortcut-grid entertainment-shortcuts" aria-label="Entertainment bookmarks">
-            <a class="tile" href="https://poki.com/"><span class="tile-icon pixel-icon"><img src="/icons/play.png" alt="" /></span><span>Play</span></a>
+            <button class="tile" type="button" data-panel="games-dialog"><span class="tile-icon pixel-icon"><img src="/icons/play.png" alt="" /></span><span>Play</span></button>
             <a class="tile" href="https://www.youtube.com/"><span class="tile-icon pixel-icon"><img src="/icons/movies.png" alt="" /></span><span>Movies</span></a>
             <a class="tile" href="https://www.crunchyroll.com/"><span class="tile-icon pixel-icon"><img src="/icons/anime.png" alt="" /></span><span>Anime</span></a>
             <a class="tile" href="https://music.youtube.com/"><span class="tile-icon pixel-icon"><img src="/icons/music.png" alt="" /></span><span>Music</span></a>
@@ -118,6 +118,20 @@
       </nav>
     </main>
 
+    <dialog id="games-dialog" class="games-dialog">
+      <form method="dialog"><button class="close" aria-label="Close games">×</button></form>
+      <p class="dialog-kicker">ORVIAN ARCADE</p>
+      <h2>Play</h2>
+      <p class="muted">Games run inside Orvian. More titles are being prepared.</p>
+      <section class="game-section request-game-section">
+        <div><span class="game-section-number">01</span><h3>Request a Game</h3><p>Suggest a game for the Orvian library.</p></div>
+        <button class="request-game-button" type="button" disabled title="The request link will be added soon">Request link coming soon</button>
+      </section>
+      <section class="game-section">
+        <div><span class="game-section-number">02</span><h3>Game Library</h3><p>Open-source games will appear here after they are reviewed and added.</p></div>
+        <div class="game-library-empty">No games added yet</div>
+      </section>
+    </dialog>
     <dialog id="links-dialog"><form method="dialog"><button class="close" aria-label="Close">×</button></form><p class="dialog-kicker">ORVIAN</p><h2>Your links</h2><div id="saved-links" class="saved-links"></div><button id="dialog-add-link" class="primary" type="button">Add a link</button></dialog>
     <dialog id="settings-dialog" class="settings-dialog">
       <form method="dialog"><button class="close" aria-label="Close">×</button></form>
