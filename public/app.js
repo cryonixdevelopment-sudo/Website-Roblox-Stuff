@@ -14,12 +14,13 @@ const displayName=document.querySelector('#display-name');
 const toast=document.querySelector('#toast');
 const launcher=document.querySelector('.launcher');
 const viewer=document.querySelector('#viewer');
-const viewerFrame=document.querySelector('#viewer-frame');
+const viewerFrameHost=document.querySelector('#viewer-frame-host');
+let viewerFrame=null, scramjetController=null, scramjetConnection=null;
 const viewerUrl=document.querySelector('#viewer-url');
 const viewerExternal=document.querySelector('#viewer-external');
 const viewerNote=document.querySelector('#viewer-note');
 const viewerBack=document.querySelector('#viewer-back');
-const proxyAvailable=Boolean(window.Ultraviolet&&window.__uv$config&&'serviceWorker' in navigator&&window.isSecureContext);
+const proxyAvailable=Boolean(window.$scramjetLoadController&&window.BareMux&&'serviceWorker' in navigator&&window.isSecureContext);
 let proxyReadyPromise=null;
 let viewerUsesProxy=false;
 let viewerHistory=[];
@@ -42,33 +43,40 @@ function normalize(value){
 }
 async function prepareProxy(){
   if(!proxyAvailable)return false;
-  if(!proxyReadyPromise){
-    proxyReadyPromise=(async()=>{
-      // GitHub Pages serves the frontend only; it cannot serve Bare or Ultraviolet assets.
-      const health=await fetch('/health',{cache:'no-store'}).catch(()=>null);
-      if(!health?.ok||!health.headers.get('content-type')?.includes('application/json'))return false;
-      const status=await health.json().catch(()=>null);
-      if(status?.status!=='ok')return false;
-      const uvScript=await fetch('/uv/uv.sw.js',{method:'HEAD',cache:'no-store'}).catch(()=>null);
-      if(!uvScript?.ok||!uvScript.headers.get('content-type')?.includes('javascript'))return false;
-      const registration=await navigator.serviceWorker.register('/sw.js',{scope:'/service/'});
-      if(registration.active)return true;
+  if(!proxyReadyPromise)proxyReadyPromise=(async()=>{
+    const health=await fetch('/health',{cache:'no-store'}).catch(()=>null);
+    if(!health?.ok||!health.headers.get('content-type')?.includes('application/json'))return false;
+    if((await health.json().catch(()=>null))?.status!=='ok')return false;
+    for(const asset of ['/scram/scramjet.all.js','/scram/scramjet.wasm.wasm','/libcurl/index.mjs','/baremux/worker.js']){
+      if(!(await fetch(asset,{method:'HEAD',cache:'no-store'}).catch(()=>null))?.ok)return false;
+    }
+    const {ScramjetController}=window.$scramjetLoadController();
+    scramjetController=new ScramjetController({files:{
+      wasm:'/scram/scramjet.wasm.wasm',all:'/scram/scramjet.all.js',sync:'/scram/scramjet.sync.js'
+    }});
+    await scramjetController.init();
+    const registration=await navigator.serviceWorker.register('/sw.js');
+    if(!registration.active){
       const worker=registration.installing||registration.waiting;
       if(!worker)return false;
-      return await new Promise(resolve=>{
-        const timeout=setTimeout(()=>resolve(false),8000);
+      const active=await new Promise(resolve=>{
+        const timeout=setTimeout(()=>resolve(false),10000);
         worker.addEventListener('statechange',()=>{
           if(worker.state==='activated'){clearTimeout(timeout);resolve(true)}
           else if(worker.state==='redundant'){clearTimeout(timeout);resolve(false)}
         });
       });
-    })().catch(error=>{console.warn('Orvian embedded browser failed:',error);return false});
-  }
+      if(!active)return false;
+    }
+    scramjetConnection=new window.BareMux.BareMuxConnection('/baremux/worker.js');
+    const wispUrl=(location.protocol==='https:'?'wss://':'ws://')+location.host+'/wisp/';
+    if((await scramjetConnection.getTransport())!=='/libcurl/index.mjs')
+      await scramjetConnection.setTransport('/libcurl/index.mjs',[{websocket:wispUrl}]);
+    return true;
+  })().catch(error=>{console.error('Scramjet setup failed:',error);return false});
   return proxyReadyPromise;
 }
-function proxyUrl(url){
-  return window.__uv$config.prefix+window.__uv$config.encodeUrl(url);
-}
+function clearEmbeddedFrame(){viewerFrameHost.replaceChildren();viewerFrame=null}
 function openUrl(value){
   const url=normalize(value);
   if(!url)return;
@@ -82,42 +90,38 @@ function openSearch(value){
   const url=normalize(value);
   if(url)showInViewer(url);
 }
+let navigationSequence=0;
 async function showInViewer(url,record=true){
   if(record&&currentViewerUrl!==url)viewerHistory.push(url);
-  currentViewerUrl=url;
-  viewerUrl.textContent=url;
-  launcher.hidden=true;
-  viewer.hidden=false;
+  currentViewerUrl=url;viewerUrl.textContent=url;launcher.hidden=true;viewer.hidden=false;
   document.body.classList.add('viewing');
-  viewerFrame.removeAttribute('src');
+  const sequence=++navigationSequence;
   viewerNote.textContent='Connecting to the in-page browser…';
-  const requestedUrl=url;
   const ready=await prepareProxy();
-  if(currentViewerUrl!==requestedUrl||viewer.hidden)return;
-  viewerUsesProxy=ready;
-  if(ready){
-    viewerNote.textContent='Browsing inside Orvian. Some sites may still limit functionality.';
-    try{
-      viewerFrame.src=proxyUrl(url);
-    }catch(error){
-      console.error('Could not load embedded page:',error);
-      viewerNote.textContent='This page could not be opened inside Orvian. Check the server and reload.';
-      viewerFrame.src='about:blank';
+  if(sequence!==navigationSequence||viewer.hidden)return;
+  viewerUsesProxy=ready;clearEmbeddedFrame();
+  if(!ready){
+    viewerNote.textContent='Scramjet requires a running Node.js server with HTTPS and WebSocket support. Static hosting cannot load embedded sites.';
+    return;
+  }
+  try{
+    const frame=scramjetController.createFrame();
+    viewerFrame=frame.frame;viewerFrame.id='viewer-frame';viewerFrame.title='Website viewer';
+    viewerFrame.setAttribute('allow','fullscreen; autoplay; clipboard-read; clipboard-write');
+    viewerFrameHost.appendChild(viewerFrame);
+    await frame.go(url);
+    if(sequence===navigationSequence)viewerNote.textContent='Browsing inside Orvian with Scramjet. Some websites may still limit functionality.';
+  }catch(error){
+    console.error('Scramjet navigation failed:',error);
+    if(sequence===navigationSequence){
+      clearEmbeddedFrame();
+      viewerNote.textContent='Unable to load this website in Scramjet. Check the server connection and try Reload.';
     }
-  }else{
-    // Never try a raw cross-origin iframe: most search engines refuse embedding.
-    viewerNote.textContent='In-page browsing is unavailable on this host. Run Orvian on its Node.js server with HTTPS and WebSocket support; static GitHub Pages cannot provide the browser backend.';
-    viewerFrame.src='about:blank';
   }
 }
 function closeViewer(){
-  currentViewerUrl='';
-  viewerHistory=[];
-  viewerFrame.src='about:blank';
-  viewer.hidden=true;
-  launcher.hidden=false;
-  document.body.classList.remove('viewing');
-  searchInput.focus();
+  ++navigationSequence;currentViewerUrl='';viewerHistory=[];clearEmbeddedFrame();
+  viewer.hidden=true;launcher.hidden=false;document.body.classList.remove('viewing');searchInput.focus();
 }
 function notify(text){
   clearTimeout(toastTimer);
@@ -151,22 +155,12 @@ document.querySelector('#viewer-reload').addEventListener('click',()=>{if(curren
 viewerBack.addEventListener('click',()=>{
   if(viewerUsesProxy){
     try{
-      viewerFrame.contentWindow.history.back();
+      viewerFrame?.contentWindow?.history.back();
       return;
     }catch(error){console.warn('In-page history unavailable:',error)}
   }
   if(viewerHistory.length<=1){closeViewer();return}
   viewerHistory.pop();showInViewer(viewerHistory.at(-1),false);
-});
-viewerFrame.addEventListener('load',()=>{
-  if(!viewerUsesProxy||viewer.hidden)return;
-  try{
-    const frameUrl=new URL(viewerFrame.contentWindow.location.href);
-    if(frameUrl.pathname.startsWith(window.__uv$config.prefix)){
-      const actual=window.__uv$config.decodeUrl(frameUrl.pathname.slice(window.__uv$config.prefix.length));
-      if(/^https?:\/\//i.test(actual)){currentViewerUrl=actual;viewerUrl.textContent=actual}
-    }
-  }catch{/* Cross-origin navigation details are not readable; browsing remains available. */}
 });
 viewerExternal.addEventListener('click',()=>{if(currentViewerUrl)window.open(currentViewerUrl,'_blank','noopener,noreferrer')});
 document.querySelectorAll('[data-panel]').forEach(button=>button.addEventListener('click',()=>document.querySelector(`#${button.dataset.panel}`)?.showModal()));

@@ -1,6 +1,7 @@
-importScripts('/uv/uv.bundle.js');
-importScripts('/uv.config.js');
-importScripts(__uv$config.sw);
-
-const uv = new UVServiceWorker();
-self.addEventListener('fetch', (event) => event.respondWith(uv.fetch(event)));
+importScripts('/scram/scramjet.all.js');
+const {ScramjetServiceWorker}=$scramjetLoadWorker();
+const scramjet=new ScramjetServiceWorker();
+self.addEventListener('fetch',event=>event.respondWith((async()=>{
+  await scramjet.loadConfig();
+  return scramjet.route(event)?scramjet.fetch(event):fetch(event.request);
+})()));

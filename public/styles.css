@@ -45,7 +45,8 @@ h1 span { display:inline-block; animation:pop-in .48s cubic-bezier(.2,.9,.25,1.2
 .viewer-address span:first-child { color:#6f4aa9; font-size:.55rem; }
 #viewer-url { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
 .viewer-note { padding:7px 14px; border-bottom:1px solid #221f29; background:#110f16; color:#8e8798; font-size:.68rem; text-align:center; }
-.viewer iframe { width:100%; height:100%; border:0; background:#fff; }
+.viewer-frame-host { min-width:0; min-height:0; width:100%; height:100%; overflow:hidden; background:#08080b; }
+.viewer-frame-host iframe { display:block; width:100%; height:100%; border:0; background:#fff; }
 .viewing .utility-dock { display:none; }
 dialog { width:min(430px,calc(100% - 32px)); border:1px solid #292731; border-radius:18px; padding:28px; background:#101015; color:var(--text); box-shadow:0 30px 100px rgba(0,0,0,.7); }
 dialog::backdrop { background:rgba(0,0,0,.68); backdrop-filter:blur(5px); }

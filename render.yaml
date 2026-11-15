@@ -3,7 +3,7 @@ services:
     name: orvian-web
     runtime: node
     plan: free
-    buildCommand: npm ci
+    buildCommand: npm install --omit=dev --no-audit --no-fund
     startCommand: npm start
     healthCheckPath: /health
     autoDeploy: true
