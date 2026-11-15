@@ -1,6 +1,6 @@
-# cool
+# Orvian
 
-A minimal, dark-themed web proxy for websites and networks you are authorized to access. It uses the open-source [Ultraviolet](https://github.com/titaniumnetwork-dev/Ultraviolet) web proxy with a [Bare server](https://github.com/tomphttp/bare-server-node) backend.
+A dark-themed web proxy optimized for Windows PCs and Chromebooks. macOS and mobile devices may work, but they are not officially supported. Orvian uses the open-source [Ultraviolet](https://github.com/titaniumnetwork-dev/Ultraviolet) web proxy with a [Bare server](https://github.com/tomphttp/bare-server-node) backend.
 
 This project does **not** include monitoring evasion, traffic disguising, or school-filter bypass features. Follow the rules of the network and websites you use.
 
@@ -10,7 +10,7 @@ No terminal or local computer is required.
 
 1. Create an account at [railway.com](https://railway.com) and sign in with GitHub.
 2. From the Railway dashboard, tap **New Project**.
-3. Choose **Deploy from GitHub repo** and select `cryonixdevelopment-sudo/Website-Roblox-Stuff`.
+3. Choose **Deploy from GitHub repo** and select `cryonixdevelopment-sudo/orvian-web`.
 4. Railway detects `railway.json`, installs the dependencies, and starts the server automatically.
 5. Open the new service, then go to **Settings** → **Networking**.
 6. Tap **Generate Domain**. Open the generated public `up.railway.app` address.
@@ -31,7 +31,7 @@ The host must support WebSockets. Static hosts such as GitHub Pages and serverle
 
 ## Updates
 
-Render automatically redeploys after changes are committed to the `main` branch. Everything can be managed from the GitHub and Render mobile websites.
+Railway automatically redeploys after changes are committed to the `main` branch. Everything can be managed from the GitHub and Railway websites.
 
 ## Run elsewhere
 

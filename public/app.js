@@ -6,6 +6,10 @@ const welcome = document.querySelector('#welcome');
 const browser = document.querySelector('#browser');
 const viewport = document.querySelector('#viewport');
 const status = document.querySelector('#status');
+const compatibility = document.querySelector('#compatibility');
+
+const platform = navigator.userAgentData?.platform || navigator.platform || navigator.userAgent;
+compatibility.hidden = /Windows|Win32|Win64|CrOS/i.test(platform);
 
 function message(text) {
   status.textContent = text;

@@ -25,7 +25,7 @@ server.on('upgrade', (req, socket, head) => {
 });
 
 server.listen(port, '0.0.0.0', () => {
-  console.log(`cool is listening on port ${port}`);
+  console.log(`Orvian is listening on port ${port}`);
 });
 
 process.on('SIGTERM', () => {

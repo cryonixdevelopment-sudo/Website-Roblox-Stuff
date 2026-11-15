@@ -1,8 +1,8 @@
 {
-  "name": "cool-proxy",
+  "name": "orvian-web",
   "version": "1.0.0",
   "private": true,
-  "description": "A small, self-hosted web proxy for authorized use.",
+  "description": "Orvian, a self-hosted web proxy for authorized use.",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",

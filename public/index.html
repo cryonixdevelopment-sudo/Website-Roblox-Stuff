@@ -4,8 +4,8 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
     <meta name="theme-color" content="#090b10" />
-    <meta name="description" content="cool — a simple proxy for authorized browsing." />
-    <title>cool</title>
+    <meta name="description" content="Orvian — a web proxy optimized for Windows and Chromebooks." />
+    <title>Orvian</title>
     <link rel="icon" type="image/png" href="/favicon.png" />
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
     <link rel="manifest" href="/manifest.webmanifest" />
@@ -16,9 +16,9 @@
   </head>
   <body>
     <header class="topbar">
-      <a class="brand" href="/" aria-label="cool home">
+      <a class="brand" href="/" aria-label="Orvian home">
         <img class="brand-mark" src="/icon-192.png" alt="" />
-        <span>cool</span>
+        <span>Orvian</span>
       </a>
       <nav class="controls" aria-label="Browser controls">
         <button id="back" class="icon-button" type="button" aria-label="Go back">←</button>
@@ -37,9 +37,14 @@
       <section id="welcome" class="welcome">
         <div class="glow" aria-hidden="true"></div>
         <div class="welcome-card">
-          <span class="eyebrow">AUTHORIZED USE ONLY</span>
-          <h1>Browse with <span>cool.</span></h1>
-          <p>A lightweight, self-hosted starting point. Enter a website above to begin.</p>
+          <span class="eyebrow">BUILT FOR WINDOWS + CHROMEOS</span>
+          <h1>
+            Browse with
+            <span class="orvian-word" aria-label="Orvian">
+              <span class="orvian-letter" style="--letter: 0" aria-hidden="true">O</span><span class="orvian-letter" style="--letter: 1" aria-hidden="true">r</span><span class="orvian-letter" style="--letter: 2" aria-hidden="true">v</span><span class="orvian-letter" style="--letter: 3" aria-hidden="true">i</span><span class="orvian-letter" style="--letter: 4" aria-hidden="true">a</span><span class="orvian-letter" style="--letter: 5" aria-hidden="true">n</span><span class="orvian-letter" style="--letter: 6" aria-hidden="true">.</span>
+            </span>
+          </h1>
+          <p>A focused browsing workspace optimized for Windows PCs and Chromebooks. Enter a website above to begin.</p>
           <form id="hero-form" class="hero-search" autocomplete="off">
             <label class="sr-only" for="hero-address">Enter a URL or search</label>
             <input id="hero-address" type="text" inputmode="url" placeholder="example.com or search terms" autocapitalize="none" spellcheck="false" />
@@ -52,6 +57,9 @@
         <iframe id="viewport" title="Proxied website" allow="fullscreen; clipboard-read; clipboard-write" referrerpolicy="no-referrer"></iframe>
       </section>
       <div id="status" class="status" role="status" aria-live="polite" hidden></div>
+      <div id="compatibility" class="compatibility" role="note" hidden>
+        Limited support on this device. Orvian is designed for Windows and ChromeOS.
+      </div>
     </main>
   </body>
 </html>
