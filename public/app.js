@@ -212,7 +212,12 @@ const sidePosterSources=[
   '/backgrounds/orvian-02.webp',
   '/backgrounds/orvian-03.webp',
   '/backgrounds/orvian-04.webp',
-  '/backgrounds/orvian-05.webp'
+  '/backgrounds/orvian-05.webp',
+  '/backgrounds/orvian-06.webp',
+  '/backgrounds/orvian-07.webp',
+  '/backgrounds/orvian-08.webp',
+  '/backgrounds/orvian-09.webp',
+  '/backgrounds/orvian-10.webp'
 ];
 const sidePosterImages=[...document.querySelectorAll('.side-art img')];
 let sidePosterIndex=0;
