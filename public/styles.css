@@ -22,6 +22,8 @@ h1 span { display:inline-block; animation:pop-in .48s cubic-bezier(.2,.9,.25,1.2
 .tile:hover,.tile:focus-visible { transform:translateY(-3px); background:var(--surface-2); border-color:#302b3a; outline:none; }
 .tile-icon { width:35px; height:35px; display:grid; place-items:center; color:#dbd8e1; font-size:2rem; font-weight:300; }
 .tile-icon svg { width:30px; height:30px; fill:none; stroke:currentColor; stroke-width:1.65; stroke-linecap:round; stroke-linejoin:round; }
+.pixel-icon { width:42px; height:38px; }
+.pixel-icon img { display:block; width:100%; height:100%; object-fit:contain; image-rendering:pixelated; }
 .brand-icon img { width:31px; height:31px; object-fit:contain; }
 .add-tile { background:transparent; border-style:dashed; border-color:#2a2830; color:#aaa6b0; }
 .add-tile .tile-icon { font-size:1.9rem; }
