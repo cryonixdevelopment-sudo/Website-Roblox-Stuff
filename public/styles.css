@@ -869,3 +869,15 @@ html.music-disabled .music-transport { display:none; }
 .member-profile-presence i { width:9px; height:9px; border-radius:50%; background:#555a64; }
 .member-profile-presence i.online { background:#61bd78; }.member-profile-presence i.idle { background:#d2a94d; }.member-profile-presence i.dnd { background:#d45f68; }
 @media (hover:none) { .chat-message-actions { opacity:1; } }
+
+.games-dialog { width:min(760px,calc(100vw - 30px)); max-height:min(760px,calc(100vh - 30px)); overflow:auto; background:linear-gradient(150deg,rgba(25,26,33,.94),rgba(7,8,11,.97)); }
+.games-dialog>h2 { margin-bottom:4px; }
+.game-section { margin-top:20px; padding:20px; border:1px solid rgba(221,225,235,.13); border-radius:15px; background:linear-gradient(120deg,rgba(220,224,234,.07),rgba(255,255,255,.015)); }
+.game-section h3 { margin:5px 0 4px; color:#e3e5eb; font-size:1rem; }
+.game-section p { margin:0; color:#858993; font-size:.7rem; line-height:1.5; }
+.game-section-number { color:#777c88; font-size:.54rem; letter-spacing:.14em; }
+.request-game-section { display:flex; align-items:center; justify-content:space-between; gap:24px; }
+.request-game-button { flex:0 0 auto; padding:11px 15px; border:1px solid rgba(224,228,238,.18); border-radius:10px; background:linear-gradient(135deg,#d8dbe2,#747985); color:#111218; font:inherit; font-size:.62rem; font-weight:700; }
+.request-game-button:disabled { cursor:not-allowed; opacity:.5; filter:saturate(.3); }
+.game-library-empty { margin-top:15px; padding:28px 15px; border:1px dashed rgba(218,222,232,.16); border-radius:12px; color:#696d77; text-align:center; font-size:.65rem; }
+@media (max-width:600px) { .request-game-section { align-items:stretch; flex-direction:column; }.request-game-button { width:100%; } }
