@@ -31,17 +31,32 @@
           <input id="search-input" placeholder="Search or enter URL..." autocomplete="off" autofocus />
         </form>
 
-        <div id="shortcut-grid" class="shortcut-grid">
-          <a class="tile" href="https://www.instagram.com/"><span class="tile-icon brand-icon"><img src="/icons/instagram.svg" alt="" /></span><span>Instagram</span></a>
-          <a class="tile" href="https://open.spotify.com/"><span class="tile-icon brand-icon"><img src="/icons/spotify.svg" alt="" /></span><span>Spotify</span></a>
-          <a class="tile" href="https://www.roblox.com/"><span class="tile-icon brand-icon"><img src="/icons/roblox.svg" alt="" /></span><span>Roblox</span></a>
-          <a class="tile" href="https://poki.com/"><span class="tile-icon pixel-icon"><img src="/icons/play.png" alt="" /></span><span>Play</span></a>
-          <a class="tile" href="https://www.youtube.com/"><span class="tile-icon pixel-icon"><img src="/icons/movies.png" alt="" /></span><span>Movies</span></a>
-          <a class="tile" href="https://www.crunchyroll.com/"><span class="tile-icon pixel-icon"><img src="/icons/anime.png" alt="" /></span><span>Anime</span></a>
-          <a class="tile" href="https://music.youtube.com/"><span class="tile-icon pixel-icon"><img src="/icons/music.png" alt="" /></span><span>Music</span></a>
-          <button class="tile" type="button" data-panel="links-dialog"><span class="tile-icon pixel-icon"><img src="/icons/lounge.png" alt="" /></span><span>Lounge</span></button>
-          <a class="tile" href="https://discord.com/app"><span class="tile-icon pixel-icon"><img src="/icons/chat.png" alt="" /></span><span>Chat</span></a>
-          <button id="add-bookmark" class="tile add-tile" type="button"><span class="tile-icon">＋</span><span>Add bookmark</span></button>
+        <div class="local-clock" aria-label="Your local date and time">
+          <time id="local-time" class="local-clock-time">--:--</time>
+          <span id="local-date" class="local-clock-date"></span>
+        </div>
+
+        <div id="shortcut-grid" class="shortcut-sections">
+          <div class="shortcut-grid brand-shortcuts" aria-label="Social and gaming bookmarks">
+            <a class="tile" href="https://www.instagram.com/"><span class="tile-icon brand-icon"><img src="/icons/instagram.svg" alt="" /></span><span>Instagram</span></a>
+            <a class="tile" href="https://open.spotify.com/"><span class="tile-icon brand-icon"><img src="/icons/spotify.svg" alt="" /></span><span>Spotify</span></a>
+            <a class="tile" href="https://www.roblox.com/"><span class="tile-icon brand-icon"><img src="/icons/roblox.svg" alt="" /></span><span>Roblox</span></a>
+            <a class="tile" href="https://discord.com/app"><span class="tile-icon brand-icon"><svg viewBox="0 0 127 96" aria-hidden="true" fill="currentColor"><path d="M104.4 8.4A101 101 0 0 0 79.5 0l-3.1 6.2a94 94 0 0 0-25.8 0L47.5 0a101 101 0 0 0-24.9 8.4C6.8 31.6 2.5 54.2 4.6 76.5A102 102 0 0 0 35.1 92l6.6-10.7a67 67 0 0 1-10.4-5c.9.7 1.9 1.4 2.9 2.1a99 99 0 0 0 58.6 0c1-.7 2-1.4 2.9-2.1a67 67 0 0 1-10.4 5L91.9 92a102 102 0 0 0 30.5-15.5c2.5-25.9-4.3-48.3-18-68.1ZM45 66.2c-5.7 0-10.3-5.2-10.3-11.6S39.3 43 45 43s10.4 5.2 10.3 11.6C55.3 61 50.7 66.2 45 66.2Zm37 0c-5.7 0-10.3-5.2-10.3-11.6S76.3 43 82 43s10.4 5.2 10.3 11.6C92.3 61 87.7 66.2 82 66.2Z"/></svg></span><span>Discord</span></a>
+            <a class="tile" href="https://x.com/"><span class="tile-icon brand-icon"><svg viewBox="0 0 24 24" aria-hidden="true" fill="currentColor"><path d="M18.9 2H22l-6.8 7.8L23.2 22h-6.3L12 14.6 5.5 22H2.3l7.3-8.5L1.9 2h6.5l4.5 6.8L18.9 2Zm-1.1 18h1.7L7.4 3.9H5.6Z"/></svg></span><span>X</span></a>
+          </div>
+          <div class="shortcut-divider" role="separator" aria-label="More shortcuts"></div>
+          <div class="shortcut-grid entertainment-shortcuts" aria-label="Entertainment bookmarks">
+            <a class="tile" href="https://poki.com/"><span class="tile-icon pixel-icon"><img src="/icons/play.png" alt="" /></span><span>Play</span></a>
+            <a class="tile" href="https://www.youtube.com/"><span class="tile-icon pixel-icon"><img src="/icons/movies.png" alt="" /></span><span>Movies</span></a>
+            <a class="tile" href="https://www.crunchyroll.com/"><span class="tile-icon pixel-icon"><img src="/icons/anime.png" alt="" /></span><span>Anime</span></a>
+            <a class="tile" href="https://music.youtube.com/"><span class="tile-icon pixel-icon"><img src="/icons/music.png" alt="" /></span><span>Music</span></a>
+            <button class="tile" type="button" data-panel="links-dialog"><span class="tile-icon pixel-icon"><img src="/icons/lounge.png" alt="" /></span><span>Lounge</span></button>
+            <a class="tile" href="https://discord.com/app"><span class="tile-icon pixel-icon"><img src="/icons/chat.png" alt="" /></span><span>Chat</span></a>
+          </div>
+          <div class="shortcut-divider" role="separator" aria-label="Add bookmark"></div>
+          <div class="bookmark-action">
+            <button id="add-bookmark" class="tile add-tile" type="button"><span class="tile-icon">＋</span><span>Add bookmark</span></button>
+          </div>
         </div>
 
         <a class="trending" href="https://trends.google.com/trending"><span>♨</span> Trending</a>
