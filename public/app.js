@@ -21,7 +21,7 @@ function normalize(input) {
   if (!value) return null;
   if (/^https?:\/\//i.test(value)) return value;
   if (/^[\w-]+(\.[\w-]+)+([/:?#].*)?$/i.test(value)) return `https://${value}`;
-  return `https://www.google.com/search?q=${encodeURIComponent(value)}`;
+  return `https://duckduckgo.com/?q=${encodeURIComponent(value)}`;
 }
 
 async function openTarget(raw) {
