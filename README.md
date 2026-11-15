@@ -26,12 +26,12 @@ The included `Dockerfile` provides a portable fallback:
 1. Create a web service and choose GitHub as the source.
 2. Select this repository and its `main` branch.
 3. Choose the repository's `Dockerfile` as the build method.
-4. Set the listening port to `3000` if the host asks.
+4. Set the listening port to `8080` if the host asks.
 5. Deploy and enable a public HTTPS domain.
 
 The host must support WebSockets. Static hosts such as GitHub Pages and serverless-only platforms such as Vercel are not suitable for the Bare proxy backend.
 
-Northflank is the recommended browser-based fallback because its Sandbox currently advertises two free services with no card required. Deploy the included `Dockerfile` and follow [DEPLOYMENT.md](DEPLOYMENT.md).
+Back4app Containers is the recommended browser-based fallback. Its published free container plan supports GitHub deployments and custom Docker containers without requiring a credit card. Deploy the included `Dockerfile` and follow [DEPLOYMENT.md](DEPLOYMENT.md).
 
 ## Updates
 

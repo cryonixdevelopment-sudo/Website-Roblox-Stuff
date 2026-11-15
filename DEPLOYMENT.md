@@ -6,40 +6,36 @@ Orvian needs a long-running Node.js service, HTTPS, and WebSocket support. GitHu
 
 The repository keeps `railway.json`; no Railway project or domain is deleted by these instructions. On November 15, 2026, independent requests to the configured Railway URL returned Railway's own `404 Application not found` response for both `/` and `/health`. Check the Railway service and domain mapping before relying on that URL.
 
-## Recommended fallback: Northflank Sandbox
+## Recommended fallback: Back4app Containers
 
-Northflank's published Sandbox plan currently states that it includes two services, two jobs, and one database, with no card required. Orvian's existing `Dockerfile` is the deployment configuration.
+Northflank currently has signup disabled, so it is not a usable option for a new account. Back4app's published Containers pricing currently lists a $0 plan with 0.25 shared CPU, 256 MB RAM, 100 GB transfer, GitHub deployment, custom Docker containers, and no credit card required. Orvian's existing `Dockerfile` is the required deployment configuration.
 
 ### Deploy from a phone
 
-1. Open [northflank.com](https://northflank.com) in Safari or Chrome and create an account.
-2. Create a new project.
-3. Tap **Create service** and choose a combined build-and-deploy service.
-4. Connect GitHub and select `cryonixdevelopment-sudo/orvian-web` with branch `main`.
-5. Choose **Dockerfile** as the build method. The Dockerfile path is `/Dockerfile` and the build context is the repository root.
-6. Select the free Sandbox compute option.
-7. Add a public HTTP port:
-   - Internal port: `3000`
-   - Protocol: HTTP
-   - Public access: enabled
-8. Configure the HTTP health check:
-   - Path: `/health`
-   - Port: `3000`
-   - Expected status: `200`
-9. Copy only the **names and values** of environment variables you intentionally configured in Railway. Enter secret values directly in Northflank's secret/environment-variable screen; never commit them to GitHub or paste them into chat.
-10. Deploy, wait for the health check to pass, and open the generated HTTPS domain.
+1. Open [back4app.com](https://www.back4app.com) in Safari or Chrome and tap **Sign Up**.
+2. Create the account, then choose **Build new app**.
+3. Select **Containers as a Service**.
+4. Tap **Import GitHub Repo** and authorize the Back4app GitHub app.
+5. Select `cryonixdevelopment-sudo/orvian-web` and branch `main`.
+6. Choose the repository root. Back4app will detect `/Dockerfile`.
+7. Keep **Auto Deployment** enabled if you want new `main` commits deployed automatically.
+8. Select the **Free** container plan. Do not continue if the dashboard shows a nonzero price.
+9. If a port setting appears, use `8080`. The Docker image sets `PORT=8080` and exposes that port.
+10. Copy only the **names and values** of environment variables you intentionally configured in Railway. Enter secret values directly in Back4app's environment-variable screen; never commit them to GitHub or paste them into chat.
+11. Create the app and wait for the deployment status to become ready.
+12. Open the generated public HTTPS URL, then verify `/health`.
 
-Dashboard wording can change. If Northflank asks for a start command despite using the Dockerfile, use `npm start`.
+Back4app documents Node container deployment on port 8080. Its public documentation does not make a clear WebSocket guarantee, so verify a proxied page after deployment before treating it as fully compatible.
 
 ## Alternative: Koyeb
 
 Koyeb also supports GitHub/Docker deployments and public HTTPS services, but its pricing page says usage beyond included monthly credit becomes pay-as-you-go. Confirm the current free allowance and billing requirements before deploying.
 
-Use the same settings as above: repository root Dockerfile, port `3000`, and HTTP health path `/health`.
+Use the repository root Dockerfile, port `8080`, and HTTP health path `/health`.
 
 ## Environment variables
 
-The application currently reads only `PORT`, which hosting platforms normally inject automatically. The Docker image defaults to port 3000 when `PORT` is absent. If you add configuration later:
+The application currently reads only `PORT`, which hosting platforms normally inject automatically. The Docker image defaults to port 8080 for Back4app; a platform-provided `PORT` overrides it. Running directly with `npm start` still defaults to port 3000. If you add configuration later:
 
 - store secrets only in the hosting dashboard;
 - use identical variable names when moving platforms;
