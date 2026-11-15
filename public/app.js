@@ -1,8 +1,9 @@
-const storageKeys={links:'orvian-links',engine:'orvian-search-engine',newTabs:'orvian-new-tabs',reduceMotion:'orvian-reduce-motion',profile:'orvian-profile',theme:'orvian-theme',background:'orvian-background',preferHttps:'orvian-prefer-https',stripTracking:'orvian-strip-tracking'};
+const storageKeys={links:'orvian-links',engine:'orvian-search-engine',newTabs:'orvian-new-tabs',reduceMotion:'orvian-reduce-motion',profile:'orvian-profile',theme:'orvian-theme',background:'orvian-background',preferHttps:'orvian-prefer-https',stripTracking:'orvian-strip-tracking',transport:'orvian-transport'};
 const engines={ddg:'https://duckduckgo.com/?q=',google:'https://www.google.com/search?q=',bing:'https://www.bing.com/search?q=',brave:'https://search.brave.com/search?q=',startpage:'https://www.startpage.com/sp/search?query='};
 const searchForm=document.querySelector('#search-form');
 const searchInput=document.querySelector('#search-input');
 const searchEngine=document.querySelector('#search-engine');
+const transportSetting=document.querySelector('#transport-setting');
 const newTabSetting=document.querySelector('#new-tab-setting');
 const motionSetting=document.querySelector('#motion-setting');
 const themeSetting=document.querySelector('#theme-setting');
@@ -47,7 +48,9 @@ async function prepareProxy(){
     const health=await fetch('/health',{cache:'no-store'}).catch(()=>null);
     if(!health?.ok||!health.headers.get('content-type')?.includes('application/json'))return false;
     if((await health.json().catch(()=>null))?.status!=='ok')return false;
-    for(const asset of ['/scram/scramjet.all.js','/scram/scramjet.wasm.wasm','/libcurl/index.mjs','/baremux/worker.js']){
+    const transport=localStorage.getItem(storageKeys.transport)==='epoxy'?'epoxy':'libcurl';
+    const transportModule=transport==='epoxy'?'/epoxy/index.mjs':'/libcurl/index.mjs';
+    for(const asset of ['/scram/scramjet.all.js','/scram/scramjet.wasm.wasm',transportModule,'/baremux/worker.js']){
       if(!(await fetch(asset,{method:'HEAD',cache:'no-store'}).catch(()=>null))?.ok)return false;
     }
     const {ScramjetController}=window.$scramjetLoadController();
@@ -69,8 +72,10 @@ async function prepareProxy(){
     if(!navigator.serviceWorker.controller)throw new Error('Service worker is not controlling Orvian');
     scramjetConnection=new window.BareMux.BareMuxConnection('/baremux/worker.js');
     const wispUrl=(location.protocol==='https:'?'wss://':'ws://')+location.host+'/wisp/';
-    if((await scramjetConnection.getTransport())!=='/libcurl/index.mjs')
-      await scramjetConnection.setTransport('/libcurl/index.mjs',[{websocket:wispUrl}]);
+    if((await scramjetConnection.getTransport())!==transportModule){
+      await scramjetConnection.setTransport(transportModule,
+        transport==='epoxy'?[{wisp:wispUrl}]:[{websocket:wispUrl}]);
+    }
     return true;
   })().catch(error=>{console.error('Scramjet setup failed:',error);proxyReadyPromise=null;viewerNote.textContent='Scramjet initialization failed: '+(error?.message||String(error));return false});
   return proxyReadyPromise;
@@ -109,7 +114,7 @@ async function showInViewer(url,record=true){
     viewerFrame.setAttribute('allow','fullscreen; autoplay; clipboard-read; clipboard-write');
     viewerFrameHost.appendChild(viewerFrame);
     await frame.go(url);
-    if(sequence===navigationSequence)viewerNote.textContent='Browsing inside Orvian with Scramjet. Some websites may still limit functionality.';
+    if(sequence===navigationSequence)viewerNote.textContent='Browsing inside Orvian with Scramjet ('+(localStorage.getItem(storageKeys.transport)==='epoxy'?'Epoxy':'libcurl')+'). Some websites may still limit functionality.';
   }catch(error){
     console.error('Scramjet navigation failed:',error);
     if(sequence===navigationSequence){
@@ -166,6 +171,7 @@ document.querySelectorAll('[data-panel]').forEach(button=>button.addEventListene
 document.querySelector('#add-bookmark').addEventListener('click',addLink);
 document.querySelector('#dialog-add-link').addEventListener('click',addLink);
 searchEngine.value=localStorage.getItem(storageKeys.engine)||'ddg';
+transportSetting.value=localStorage.getItem(storageKeys.transport)==='epoxy'?'epoxy':'libcurl';
 newTabSetting.checked=localStorage.getItem(storageKeys.newTabs)==='true';
 motionSetting.checked=localStorage.getItem(storageKeys.reduceMotion)==='true';
 themeSetting.value=localStorage.getItem(storageKeys.theme)||'midnight';
@@ -176,6 +182,10 @@ document.documentElement.classList.toggle('reduce-motion',motionSetting.checked)
 document.documentElement.dataset.theme=themeSetting.value;
 document.documentElement.style.setProperty('--background-opacity',String(Number(backgroundSetting.value)/100));
 searchEngine.addEventListener('change',()=>localStorage.setItem(storageKeys.engine,searchEngine.value));
+transportSetting.addEventListener('change',()=>{
+  localStorage.setItem(storageKeys.transport,transportSetting.value);
+  notify('Connection mode saved. Refresh Orvian to apply.');
+});
 newTabSetting.addEventListener('change',()=>localStorage.setItem(storageKeys.newTabs,String(newTabSetting.checked)));
 motionSetting.addEventListener('change',()=>{localStorage.setItem(storageKeys.reduceMotion,String(motionSetting.checked));document.documentElement.classList.toggle('reduce-motion',motionSetting.checked)});
 themeSetting.addEventListener('change',()=>{localStorage.setItem(storageKeys.theme,themeSetting.value);document.documentElement.dataset.theme=themeSetting.value});
@@ -187,7 +197,7 @@ displayName.value=localStorage.getItem(storageKeys.profile)||'';
 document.querySelector('#save-profile').addEventListener('click',()=>{localStorage.setItem(storageKeys.profile,displayName.value.trim());notify('Profile saved locally')});
 function clearLocalData(){
   if(!window.confirm('Clear Orvian bookmarks, settings, and profile from this browser?'))return;
-  Object.values(storageKeys).forEach(key=>localStorage.removeItem(key));renderLinks();searchEngine.value='ddg';newTabSetting.checked=false;motionSetting.checked=false;themeSetting.value='midnight';backgroundSetting.value='100';httpsSetting.checked=false;trackingSetting.checked=false;displayName.value='';document.documentElement.classList.remove('reduce-motion');document.documentElement.dataset.theme='midnight';document.documentElement.style.setProperty('--background-opacity','1');notify('Local data cleared');
+  Object.values(storageKeys).forEach(key=>localStorage.removeItem(key));renderLinks();searchEngine.value='ddg';transportSetting.value='libcurl';newTabSetting.checked=false;motionSetting.checked=false;themeSetting.value='midnight';backgroundSetting.value='100';httpsSetting.checked=false;trackingSetting.checked=false;displayName.value='';document.documentElement.classList.remove('reduce-motion');document.documentElement.dataset.theme='midnight';document.documentElement.style.setProperty('--background-opacity','1');notify('Local data cleared');
 }
 document.querySelector('#clear-data').addEventListener('click',clearLocalData);
 document.querySelector('#settings-clear-data').addEventListener('click',clearLocalData);
