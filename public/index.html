@@ -87,22 +87,22 @@
           <div class="chat-brand">
             <div class="chat-brand-mark"><img src="/favicon.png" alt="" /></div>
             <div><strong>Orvian</strong><span>Community</span></div>
-            <button class="chat-brand-menu" type="button" aria-label="Community menu">⌄</button>
+            <button id="chat-collapse-all" class="chat-brand-menu" type="button" aria-label="Collapse or expand channel sections" aria-expanded="true">⌄</button>
           </div>
-          <div class="channel-search" aria-hidden="true">Find a conversation</div>
+          <label class="channel-search"><span aria-hidden="true">⌕</span><input id="channel-filter" type="search" placeholder="Find a conversation" aria-label="Find a conversation" /></label>
           <nav class="chat-channels" aria-label="Chat channels">
             <section class="channel-category">
-              <h3><span>⌄</span> Importants</h3>
+              <h3><button class="category-toggle" type="button" aria-expanded="true"><span>⌄</span> Importants</button></h3>
               <button class="chat-channel" type="button" data-channel="announcements"><b>#</b><span>announcements</span><i>Official</i></button>
               <button class="chat-channel" type="button" data-channel="rules"><b>#</b><span>rules</span></button>
             </section>
             <section class="channel-category">
-              <h3><span>⌄</span> Community</h3>
+              <h3><button class="category-toggle" type="button" aria-expanded="true"><span>⌄</span> Community</button></h3>
               <button class="chat-channel active" type="button" data-channel="general"><b>#</b><span>general</span></button>
               <button class="chat-channel" type="button" data-channel="introductions"><b>#</b><span>introductions</span></button>
             </section>
             <section class="channel-category misc-category">
-              <h3><span>⌄</span> MISC</h3>
+              <h3><button class="category-toggle" type="button" aria-expanded="true"><span>⌄</span> MISC</button></h3>
               <p class="chat-empty-category">No channels yet</p>
             </section>
           </nav>
@@ -112,18 +112,18 @@
               <div><strong id="chat-user-name">Member</strong><small id="chat-user-role">member</small></div>
               <em>Edit profile</em>
             </button>
-            <div class="chat-user-controls" aria-hidden="true"><span>◉</span><span>◌</span><span>⚙</span></div>
+            <div class="chat-user-controls"><button id="chat-status-control" type="button" aria-label="Edit status" title="Edit status">◉</button><button id="chat-notification-control" type="button" aria-label="Toggle notification sounds" title="Notification sounds">◌</button><button id="chat-settings-control" type="button" aria-label="Open settings" title="Settings">⚙</button></div>
           </div>
         </aside>
         <main class="chat-main">
           <header class="chat-header">
             <div class="chat-header-channel"><b>#</b><div><strong><span id="chat-channel-name">general</span></strong><small id="chat-channel-description">Talk with the Orvian community</small></div></div>
-            <div class="chat-header-tools"><span aria-hidden="true">◉</span><span aria-hidden="true">♟</span><span class="chat-search-pill">Search</span><button id="chat-close" type="button" aria-label="Close chat">×</button></div>
+            <div class="chat-header-tools"><button id="chat-members-toggle" type="button" aria-label="Toggle member list" title="Members">♟</button><label class="chat-search-pill"><span>⌕</span><input id="chat-message-search" type="search" placeholder="Search messages" aria-label="Search messages" /></label><button id="chat-close" type="button" aria-label="Close chat">×</button></div>
           </header>
           <div class="chat-content">
             <div id="chat-messages" class="chat-messages" aria-live="polite"></div>
             <div class="chat-compose-wrap">
-              <form id="chat-form" class="chat-composer"><button class="composer-add" type="button" aria-label="Add attachment" disabled>＋</button><input id="chat-input" maxlength="1000" autocomplete="off" placeholder="Message #general" /><div class="composer-extras" aria-hidden="true">GIF　☺</div><button class="composer-send" type="submit">Send</button></form>
+              <form id="chat-form" class="chat-composer"><button id="composer-add" class="composer-add" type="button" aria-label="Add image" title="Add image">＋</button><input id="chat-attachment-input" type="file" accept="image/png,image/jpeg,image/webp,image/gif" hidden /><input id="chat-input" maxlength="1000" autocomplete="off" placeholder="Message #general" /><div class="composer-extras"><button id="composer-gif" type="button" title="Add GIF by URL">GIF</button><button id="composer-emoji" type="button" title="Add emoji">☺</button></div><button class="composer-send" type="submit">Send</button></form><div id="chat-attachment-preview" class="chat-attachment-preview" hidden></div>
               <p id="chat-status" class="chat-status" role="status"></p>
             </div>
           </div>
