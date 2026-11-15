@@ -13,6 +13,8 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@1,600&family=Montserrat:wght@400;500;600;700&display=swap" rel="stylesheet" />
     <link rel="stylesheet" href="/styles.css" />
+    <script src="/uv/uv.bundle.js" defer></script>
+    <script src="/uv.config.js" defer></script>
     <script src="/app.js" defer></script>
   </head>
   <body>
@@ -56,7 +58,7 @@
           <button id="viewer-external" type="button">Open externally ↗</button>
           <button id="viewer-close" type="button" aria-label="Return home">×</button>
         </header>
-        <div class="viewer-note">Some websites block in-page viewing. Use “Open externally” if the page refuses to load.</div>
+        <div id="viewer-note" class="viewer-note" role="status">Orvian keeps browsing inside this window when the site and host support it.</div>
         <iframe id="viewer-frame" title="Website viewer" allow="fullscreen; autoplay; clipboard-read; clipboard-write" referrerpolicy="strict-origin-when-cross-origin"></iframe>
       </section>
 
