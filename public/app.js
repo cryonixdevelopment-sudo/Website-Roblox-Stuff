@@ -573,10 +573,36 @@ function renderChatMessages(messages){
     const name=document.createElement('strong');name.textContent=message.username;head.append(name);
     if(message.role==='owner'){const badge=document.createElement('span');badge.className='chat-owner-badge';badge.textContent='OWNER';head.append(badge)}
     const time=document.createElement('time');time.dateTime=message.created_at;time.textContent=new Intl.DateTimeFormat(undefined,{month:'short',day:'numeric',hour:'numeric',minute:'2-digit'}).format(new Date(message.created_at));head.append(time);
+    if(message.edited_at){const edited=document.createElement('span');edited.className='chat-edited';edited.textContent='(edited)';head.append(edited)}
+    if(message.canModify){
+      const actions=document.createElement('span');actions.className='chat-message-actions';
+      const edit=document.createElement('button');edit.type='button';edit.className='chat-message-action';edit.textContent='Edit';edit.addEventListener('click',()=>editChatMessage(message));
+      const remove=document.createElement('button');remove.type='button';remove.className='chat-message-action delete';remove.textContent='Delete';remove.addEventListener('click',()=>deleteChatMessage(message));
+      actions.append(edit,remove);head.append(actions);
+    }
     const text=document.createElement('p');text.textContent=message.body;
     body.append(head,text);item.append(avatar,body);chatMessages.append(item);
   });
   chatMessages.scrollTop=chatMessages.scrollHeight;
+}
+async function editChatMessage(message){
+  const next=window.prompt('Edit your message',message.body);
+  if(next===null||next.trim()===message.body)return;
+  const body=next.trim();
+  if(!body||body.length>1000){chatStatus.textContent='Messages must be 1–1000 characters.';return}
+  try{
+    const response=await fetch('/api/chat/messages/'+encodeURIComponent(message.id),{method:'PATCH',headers:{'Content-Type':'application/json'},credentials:'same-origin',body:JSON.stringify({body})});
+    const data=await response.json();if(!response.ok)throw new Error(data.error||'Unable to edit message.');
+    chatStatus.textContent='';loadChatMessages({quiet:true});
+  }catch(error){chatStatus.textContent=error.message}
+}
+async function deleteChatMessage(message){
+  if(!window.confirm('Delete this message?'))return;
+  try{
+    const response=await fetch('/api/chat/messages/'+encodeURIComponent(message.id),{method:'DELETE',credentials:'same-origin'});
+    if(!response.ok){const data=await response.json();throw new Error(data.error||'Unable to delete message.')}
+    chatStatus.textContent='';loadChatMessages({quiet:true});
+  }catch(error){chatStatus.textContent=error.message}
 }
 async function loadChatMessages({quiet=false}={}){
   try{
@@ -624,6 +650,20 @@ document.querySelector('#chat-form').addEventListener('submit',async event=>{
 
 // Member presence and editable profiles
 const membersList=document.querySelector('#members-list');
+const memberProfileDialog=document.querySelector('#member-profile-dialog');
+function openMemberProfile(member){
+  const effect=document.querySelector('#member-profile-effect');effect.className='member-profile-effect effect-'+member.effect;
+  const avatar=document.querySelector('#member-profile-avatar');avatar.style.backgroundImage=member.avatar?`url("${member.avatar}")`:'';
+  avatar.textContent=member.avatar?'':(member.displayName||member.username).charAt(0).toUpperCase();
+  document.querySelector('#member-profile-name').textContent=member.displayName;
+  document.querySelector('#member-profile-username').textContent='@'+member.username;
+  document.querySelector('#member-profile-role').textContent=member.role==='owner'?'Owner':'Member';
+  document.querySelector('#member-profile-bio').textContent=member.bio||'No bio yet.';
+  const dot=document.querySelector('#member-profile-dot');dot.className=member.status;
+  document.querySelector('#member-profile-status').textContent=member.status==='dnd'?'Do Not Disturb':member.status;
+  memberProfileDialog.showModal();
+}
+
 const profileDialog=document.querySelector('#profile-dialog');
 const profileForm=document.querySelector('#profile-form');
 const profileDisplayName=document.querySelector('#profile-display-name');
@@ -644,7 +684,7 @@ function renderMembers(members){
   for(const group of [{title:'Online',members:members.filter(member=>member.status!=='offline')},{title:'Offline',members:members.filter(member=>member.status==='offline')}]){
     const title=document.createElement('h3');title.className='member-group-title';title.textContent=group.title+' — '+group.members.length;membersList.append(title);
     group.members.forEach(member=>{
-      const card=document.createElement('div');card.className='member-card '+member.status;
+      const card=document.createElement('button');card.type='button';card.className='member-card '+member.status;card.setAttribute('aria-label','View '+member.displayName+' profile');card.addEventListener('click',()=>openMemberProfile(member));
       const wrap=document.createElement('span');wrap.className='member-avatar-wrap effect-'+member.effect;
       wrap.append(avatarElement(member));const dot=document.createElement('i');dot.className='member-status-dot '+member.status;wrap.append(dot);
       const info=document.createElement('span');const name=document.createElement('strong');name.textContent=member.displayName;
