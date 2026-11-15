@@ -82,29 +82,54 @@
         <div id="viewer-frame-host" class="viewer-frame-host" aria-label="Embedded website viewer"></div>
       </section>
 
-      <section id="chat-view" class="chat-view" hidden>
+      <section id="chat-view" class="chat-view discord-workspace" hidden>
         <aside class="chat-sidebar">
-          <div class="chat-brand"><img src="/favicon.png" alt="" /><div><strong>Orvian Chat</strong><span>Community space</span></div></div>
+          <div class="chat-brand">
+            <div class="chat-brand-mark"><img src="/favicon.png" alt="" /></div>
+            <div><strong>Orvian</strong><span>Community</span></div>
+            <button class="chat-brand-menu" type="button" aria-label="Community menu">⌄</button>
+          </div>
+          <div class="channel-search" aria-hidden="true">Find a conversation</div>
           <nav class="chat-channels" aria-label="Chat channels">
-            <h3>Importants</h3>
-            <button class="chat-channel" type="button" data-channel="announcements"># announcements</button>
-            <button class="chat-channel" type="button" data-channel="rules"># rules</button>
-            <h3>Community</h3>
-            <button class="chat-channel active" type="button" data-channel="general"># general</button>
-            <button class="chat-channel" type="button" data-channel="introductions"># introductions</button>
-            <h3>MISC</h3>
-            <p class="chat-empty-category">No channels yet</p>
+            <section class="channel-category">
+              <h3><span>⌄</span> Importants</h3>
+              <button class="chat-channel" type="button" data-channel="announcements"><b>#</b><span>announcements</span><i>Official</i></button>
+              <button class="chat-channel" type="button" data-channel="rules"><b>#</b><span>rules</span></button>
+            </section>
+            <section class="channel-category">
+              <h3><span>⌄</span> Community</h3>
+              <button class="chat-channel active" type="button" data-channel="general"><b>#</b><span>general</span></button>
+              <button class="chat-channel" type="button" data-channel="introductions"><b>#</b><span>introductions</span></button>
+            </section>
+            <section class="channel-category misc-category">
+              <h3><span>⌄</span> MISC</h3>
+              <p class="chat-empty-category">No channels yet</p>
+            </section>
           </nav>
-          <button id="edit-chat-profile" class="chat-user" type="button"><span id="chat-user-avatar">O</span><div><strong id="chat-user-name">Member</strong><small id="chat-user-role">member</small></div><em>Edit</em></button>
+          <div class="chat-user-dock">
+            <button id="edit-chat-profile" class="chat-user" type="button">
+              <span class="chat-user-avatar-shell"><span id="chat-user-avatar">O</span><i></i></span>
+              <div><strong id="chat-user-name">Member</strong><small id="chat-user-role">member</small></div>
+              <em>Edit profile</em>
+            </button>
+            <div class="chat-user-controls" aria-hidden="true"><span>◉</span><span>◌</span><span>⚙</span></div>
+          </div>
         </aside>
         <main class="chat-main">
-          <header class="chat-header"><div><strong># <span id="chat-channel-name">general</span></strong><small id="chat-channel-description">Talk with the Orvian community</small></div><button id="chat-close" type="button" aria-label="Close chat">×</button></header>
-          <div id="chat-messages" class="chat-messages" aria-live="polite"></div>
-          <form id="chat-form" class="chat-composer"><input id="chat-input" maxlength="1000" autocomplete="off" placeholder="Message #general" /><button type="submit">Send</button></form>
-          <p id="chat-status" class="chat-status" role="status"></p>
+          <header class="chat-header">
+            <div class="chat-header-channel"><b>#</b><div><strong><span id="chat-channel-name">general</span></strong><small id="chat-channel-description">Talk with the Orvian community</small></div></div>
+            <div class="chat-header-tools"><span aria-hidden="true">◉</span><span aria-hidden="true">♟</span><span class="chat-search-pill">Search</span><button id="chat-close" type="button" aria-label="Close chat">×</button></div>
+          </header>
+          <div class="chat-content">
+            <div id="chat-messages" class="chat-messages" aria-live="polite"></div>
+            <div class="chat-compose-wrap">
+              <form id="chat-form" class="chat-composer"><button class="composer-add" type="button" aria-label="Add attachment" disabled>＋</button><input id="chat-input" maxlength="1000" autocomplete="off" placeholder="Message #general" /><div class="composer-extras" aria-hidden="true">GIF　☺</div><button class="composer-send" type="submit">Send</button></form>
+              <p id="chat-status" class="chat-status" role="status"></p>
+            </div>
+          </div>
         </main>
         <aside class="members-panel">
-          <header><strong>Members</strong><span id="member-count">0</span></header>
+          <header><div><strong>Member List</strong><small>Orvian Community</small></div><span id="member-count">0</span></header>
           <div id="members-list" class="members-list"></div>
         </aside>
       </section>
