@@ -40,21 +40,29 @@ function normalize(value){
   const engine=localStorage.getItem(storageKeys.engine)||'ddg';
   return `${engines[engine]||engines.ddg}${encodeURIComponent(input)}`;
 }
-function prepareProxy(){
-  if(!proxyAvailable)return Promise.resolve(false);
+async function prepareProxy(){
+  if(!proxyAvailable)return false;
   if(!proxyReadyPromise){
-    proxyReadyPromise=navigator.serviceWorker.register('/sw.js',{scope:'/service/'})
-      .then(registration=>new Promise(resolve=>{
-        if(registration.active)return resolve(true);
-        const worker=registration.installing||registration.waiting;
-        if(!worker)return resolve(false);
+    proxyReadyPromise=(async()=>{
+      // GitHub Pages serves the frontend only; it cannot serve Bare or Ultraviolet assets.
+      const health=await fetch('/health',{cache:'no-store'}).catch(()=>null);
+      if(!health?.ok||!health.headers.get('content-type')?.includes('application/json'))return false;
+      const status=await health.json().catch(()=>null);
+      if(status?.status!=='ok')return false;
+      const uvScript=await fetch('/uv/uv.sw.js',{method:'HEAD',cache:'no-store'}).catch(()=>null);
+      if(!uvScript?.ok||!uvScript.headers.get('content-type')?.includes('javascript'))return false;
+      const registration=await navigator.serviceWorker.register('/sw.js',{scope:'/service/'});
+      if(registration.active)return true;
+      const worker=registration.installing||registration.waiting;
+      if(!worker)return false;
+      return await new Promise(resolve=>{
         const timeout=setTimeout(()=>resolve(false),8000);
         worker.addEventListener('statechange',()=>{
           if(worker.state==='activated'){clearTimeout(timeout);resolve(true)}
-          if(worker.state==='redundant'){clearTimeout(timeout);resolve(false)}
+          else if(worker.state==='redundant'){clearTimeout(timeout);resolve(false)}
         });
-      }))
-      .catch(error=>{console.warn('Orvian in-page browser unavailable:',error);return false});
+      });
+    })().catch(error=>{console.warn('Orvian embedded browser failed:',error);return false});
   }
   return proxyReadyPromise;
 }
@@ -70,7 +78,10 @@ function openUrl(value){
   }
   showInViewer(url);
 }
-function openSearch(value){openUrl(value)}
+function openSearch(value){
+  const url=normalize(value);
+  if(url)showInViewer(url);
+}
 async function showInViewer(url,record=true){
   if(record&&currentViewerUrl!==url)viewerHistory.push(url);
   currentViewerUrl=url;
@@ -86,10 +97,17 @@ async function showInViewer(url,record=true){
   viewerUsesProxy=ready;
   if(ready){
     viewerNote.textContent='Browsing inside Orvian. Some sites may still limit functionality.';
-    viewerFrame.src=proxyUrl(url);
+    try{
+      viewerFrame.src=proxyUrl(url);
+    }catch(error){
+      console.error('Could not load embedded page:',error);
+      viewerNote.textContent='This page could not be opened inside Orvian. Check the server and reload.';
+      viewerFrame.src='about:blank';
+    }
   }else{
-    viewerNote.textContent='Embedded mode is limited on this host. Some sites block frames; a Node.js deployment with HTTPS and WebSockets is required for full in-page browsing.';
-    viewerFrame.src=url;
+    // Never try a raw cross-origin iframe: most search engines refuse embedding.
+    viewerNote.textContent='In-page browsing is unavailable on this host. Run Orvian on its Node.js server with HTTPS and WebSocket support; static GitHub Pages cannot provide the browser backend.';
+    viewerFrame.src='about:blank';
   }
 }
 function closeViewer(){
