@@ -1,6 +1,6 @@
 # Orvian deployment guide
 
-Orvian needs a long-running Node.js service, HTTPS, and WebSocket support. GitHub Pages and serverless-only hosting are incompatible with the Bare proxy transport.
+Orvian needs a long-running Node.js service, HTTPS, and WebSocket support. GitHub Pages and serverless-only hosting are incompatible with the Scramjet Wisp transport.
 
 ## Current Railway deployment
 
@@ -47,6 +47,8 @@ After deployment, open these URLs:
 
 - `https://YOUR-DOMAIN/` — should show the Orvian home screen.
 - `https://YOUR-DOMAIN/health` — should return JSON containing `"status":"ok"`.
-- `https://YOUR-DOMAIN/uv/uv.bundle.js` — should return JavaScript with status 200.
+- `https://YOUR-DOMAIN/scram/scramjet.all.js` — should return JavaScript with status 200.
+- `https://YOUR-DOMAIN/baremux/index.js` — should return JavaScript with status 200.
+- Search for a term and verify that the result opens inside Orvian without changing the top-level URL.
 
 Loading successfully from a personal network establishes hosting health. It does not establish that a managed school network permits the service. Ask the network administrator to review any GoGuardian block category or custom rule; do not move domains to circumvent an access policy.
