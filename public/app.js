@@ -501,6 +501,7 @@ function renderAuthState(){
   if(authUser){
     document.querySelector('#account-username').textContent=authUser.username;
     document.querySelector('#account-email').textContent=authUser.email||'No email added';
+    document.querySelector('#account-role').textContent=authUser.role;
     document.querySelector('#account-avatar').textContent=authUser.username.charAt(0).toUpperCase();
   }
 }
@@ -545,3 +546,77 @@ document.querySelector('#logout-button').addEventListener('click',async()=>{
   authUser=null;renderAuthState();notify('Signed out');
 });
 refreshAuth();
+
+
+// Internal authenticated community chat
+const chatView=document.querySelector('#chat-view');
+const chatMessages=document.querySelector('#chat-messages');
+const chatInput=document.querySelector('#chat-input');
+const chatStatus=document.querySelector('#chat-status');
+const chatChannelName=document.querySelector('#chat-channel-name');
+const chatChannelDescription=document.querySelector('#chat-channel-description');
+const chatDescriptions={general:'Talk with the Orvian community',introductions:'Introduce yourself',announcements:'Official updates from the Owner',rules:'Community rules from the Owner'};
+let activeChatChannel='general';
+let chatPollTimer=0;
+function renderChatMessages(messages){
+  chatMessages.replaceChildren();
+  if(!messages.length){
+    const empty=document.createElement('p');empty.className='chat-welcome';
+    empty.textContent=activeChatChannel==='announcements'?'No announcements yet.':activeChatChannel==='rules'?'No rules have been posted yet.':'This channel is quiet. Start the conversation.';
+    chatMessages.append(empty);return;
+  }
+  messages.forEach(message=>{
+    const item=document.createElement('article');item.className='chat-message';
+    const avatar=document.createElement('span');avatar.className='chat-message-avatar';avatar.textContent=message.username.charAt(0).toUpperCase();
+    const body=document.createElement('div');
+    const head=document.createElement('div');head.className='chat-message-head';
+    const name=document.createElement('strong');name.textContent=message.username;head.append(name);
+    if(message.role==='owner'){const badge=document.createElement('span');badge.className='chat-owner-badge';badge.textContent='OWNER';head.append(badge)}
+    const time=document.createElement('time');time.dateTime=message.created_at;time.textContent=new Intl.DateTimeFormat(undefined,{month:'short',day:'numeric',hour:'numeric',minute:'2-digit'}).format(new Date(message.created_at));head.append(time);
+    const text=document.createElement('p');text.textContent=message.body;
+    body.append(head,text);item.append(avatar,body);chatMessages.append(item);
+  });
+  chatMessages.scrollTop=chatMessages.scrollHeight;
+}
+async function loadChatMessages({quiet=false}={}){
+  try{
+    const response=await fetch('/api/chat/messages?channel='+encodeURIComponent(activeChatChannel),{credentials:'same-origin',cache:'no-store'});
+    const data=await response.json();
+    if(!response.ok)throw new Error(data.error||'Unable to load chat.');
+    renderChatMessages(data.messages||[]);
+    if(!quiet)chatStatus.textContent='';
+  }catch(error){if(!quiet)chatStatus.textContent=error.message}
+}
+function openChat(){
+  if(!authUser){openAuthPrompt();return}
+  launcher.hidden=true;chatView.hidden=false;document.body.classList.add('chatting');
+  document.querySelector('#chat-user-name').textContent=authUser.username;
+  document.querySelector('#chat-user-role').textContent=authUser.role;
+  document.querySelector('#chat-user-avatar').textContent=authUser.username.charAt(0).toUpperCase();
+  loadChatMessages();
+  clearInterval(chatPollTimer);chatPollTimer=setInterval(()=>loadChatMessages({quiet:true}),4000);
+}
+function closeChat(){
+  clearInterval(chatPollTimer);chatView.hidden=true;launcher.hidden=false;document.body.classList.remove('chatting');
+}
+document.querySelector('[data-chat-open]').addEventListener('click',openChat);
+document.querySelector('#chat-close').addEventListener('click',closeChat);
+document.querySelectorAll('.chat-channel').forEach(button=>button.addEventListener('click',()=>{
+  document.querySelectorAll('.chat-channel').forEach(item=>item.classList.toggle('active',item===button));
+  activeChatChannel=button.dataset.channel;
+  chatChannelName.textContent=activeChatChannel;
+  chatChannelDescription.textContent=chatDescriptions[activeChatChannel];
+  chatInput.placeholder='Message #'+activeChatChannel;
+  chatStatus.textContent='';
+  loadChatMessages();
+}));
+document.querySelector('#chat-form').addEventListener('submit',async event=>{
+  event.preventDefault();
+  const body=chatInput.value.trim();if(!body)return;
+  chatStatus.textContent='Sending…';
+  try{
+    const response=await fetch('/api/chat/messages',{method:'POST',headers:{'Content-Type':'application/json'},credentials:'same-origin',body:JSON.stringify({channel:activeChatChannel,body})});
+    const data=await response.json();if(!response.ok)throw new Error(data.error||'Unable to send.');
+    chatInput.value='';chatStatus.textContent='';loadChatMessages();
+  }catch(error){chatStatus.textContent=error.message}
+});

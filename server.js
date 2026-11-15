@@ -54,6 +54,18 @@ function ensureAuthSchema(){
       created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
     );
     CREATE INDEX IF NOT EXISTS orvian_sessions_expiry_idx ON orvian_sessions(expires_at);
+    ALTER TABLE orvian_users ADD COLUMN IF NOT EXISTS role VARCHAR(16) NOT NULL DEFAULT 'member';
+    UPDATE orvian_users SET role='owner'
+      WHERE id=(SELECT id FROM orvian_users ORDER BY created_at ASC,id ASC LIMIT 1)
+      AND NOT EXISTS(SELECT 1 FROM orvian_users WHERE role='owner');
+    CREATE TABLE IF NOT EXISTS orvian_chat_messages (
+      id BIGSERIAL PRIMARY KEY,
+      channel VARCHAR(32) NOT NULL,
+      user_id BIGINT NOT NULL REFERENCES orvian_users(id) ON DELETE CASCADE,
+      body VARCHAR(1000) NOT NULL,
+      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    );
+    CREATE INDEX IF NOT EXISTS orvian_chat_channel_idx ON orvian_chat_messages(channel,created_at DESC);
   `).catch(error=>{authSchemaPromise=null;throw error});
   return authSchemaPromise;
 }
@@ -82,13 +94,13 @@ async function currentAuthUser(req){
   if(!token)return null;
   await ensureAuthSchema();
   const result=await authPool.query(`
-    SELECT u.id,u.username,u.email FROM orvian_sessions s
+    SELECT u.id,u.username,u.email,u.role FROM orvian_sessions s
     JOIN orvian_users u ON u.id=s.user_id
     WHERE s.token_hash=$1 AND s.expires_at>NOW()
   `,[tokenHash(token)]);
   return result.rows[0]||null;
 }
-function publicUser(user){return user?{id:String(user.id),username:user.username,email:user.email||null}:null}
+function publicUser(user){return user?{id:String(user.id),username:user.username,email:user.email||null,role:user.role||'member'}:null}
 app.get('/api/auth/me',async(req,res)=>{
   try{return res.json({user:publicUser(await currentAuthUser(req)),available:Boolean(authPool)})}
   catch(error){console.error('Auth status failed:',error.message);return res.status(503).json({error:'Accounts are temporarily unavailable.',available:false})}
@@ -119,7 +131,7 @@ app.post('/api/auth/login',authRateLimit,async(req,res)=>{
   const password=String(req.body?.password||'');
   try{
     await ensureAuthSchema();
-    const result=await authPool.query('SELECT id,username,email,password_hash FROM orvian_users WHERE username_lower=$1',[username]);
+    const result=await authPool.query('SELECT id,username,email,password_hash,role FROM orvian_users WHERE username_lower=$1',[username]);
     const user=result.rows[0];
     if(!user||!await bcrypt.compare(password,user.password_hash))return res.status(401).json({error:'Incorrect username or password.'});
     await createSession(req,res,user.id);
@@ -132,6 +144,42 @@ app.post('/api/auth/logout',async(req,res)=>{
   if(authPool&&token)authPool.query('DELETE FROM orvian_sessions WHERE token_hash=$1',[tokenHash(token)]).catch(()=>{});
   res.json({ok:true});
 });
+const chatChannels=new Set(['general','introductions','announcements','rules']);
+async function requireAccount(req,res,next){
+  try{
+    const user=await currentAuthUser(req);
+    if(!user)return res.status(401).json({error:'Sign in to use Chat.'});
+    req.authUser=user;next();
+  }catch(error){console.error('Account check failed:',error.message);res.status(503).json({error:'Chat is temporarily unavailable.'})}
+}
+app.get('/api/chat/messages',requireAccount,async(req,res)=>{
+  const channel=String(req.query.channel||'general');
+  if(!chatChannels.has(channel))return res.status(400).json({error:'Unknown channel.'});
+  try{
+    const result=await authPool.query(`
+      SELECT m.id,m.body,m.created_at,u.username,u.role
+      FROM orvian_chat_messages m JOIN orvian_users u ON u.id=m.user_id
+      WHERE m.channel=$1 ORDER BY m.created_at DESC LIMIT 100
+    `,[channel]);
+    res.json({messages:result.rows.reverse().map(message=>({...message,id:String(message.id)}))});
+  }catch(error){console.error('Chat fetch failed:',error.message);res.status(500).json({error:'Unable to load messages.'})}
+});
+app.post('/api/chat/messages',requireAccount,async(req,res)=>{
+  const channel=String(req.body?.channel||'');
+  const body=String(req.body?.body||'').trim();
+  if(!chatChannels.has(channel))return res.status(400).json({error:'Unknown channel.'});
+  if(!body||body.length>1000)return res.status(400).json({error:'Messages must be 1–1000 characters.'});
+  if((channel==='announcements'||channel==='rules')&&req.authUser.role!=='owner')
+    return res.status(403).json({error:'Only the Owner can post in this channel.'});
+  try{
+    const result=await authPool.query(`
+      INSERT INTO orvian_chat_messages(channel,user_id,body) VALUES($1,$2,$3)
+      RETURNING id,body,created_at
+    `,[channel,req.authUser.id,body]);
+    res.status(201).json({message:{...result.rows[0],id:String(result.rows[0].id),username:req.authUser.username,role:req.authUser.role}});
+  }catch(error){console.error('Chat post failed:',error.message);res.status(500).json({error:'Unable to send message.'})}
+});
+
 
 app.get('/health',(_req,res)=>{
   res.setHeader('Cache-Control','no-store');

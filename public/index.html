@@ -57,7 +57,7 @@
             <a class="tile" href="https://www.crunchyroll.com/"><span class="tile-icon pixel-icon"><img src="/icons/anime.png" alt="" /></span><span>Anime</span></a>
             <a class="tile" href="https://music.youtube.com/"><span class="tile-icon pixel-icon"><img src="/icons/music.png" alt="" /></span><span>Music</span></a>
             <button class="tile" type="button" data-panel="links-dialog" data-auth-required><span class="tile-icon pixel-icon"><img src="/icons/lounge.png" alt="" /></span><span>Lounge</span></button>
-            <a class="tile" href="https://discord.com/app" data-auth-required><span class="tile-icon pixel-icon"><img src="/icons/chat.png" alt="" /></span><span>Chat</span></a>
+            <button class="tile" type="button" data-chat-open data-auth-required><span class="tile-icon pixel-icon"><img src="/icons/chat.png" alt="" /></span><span>Chat</span></button>
           </div>
           <div class="shortcut-divider" role="separator" aria-label="Add bookmark"></div>
           <div class="bookmark-action">
@@ -80,6 +80,29 @@
         </header>
         <div id="viewer-note" class="viewer-note" role="status">Orvian keeps browsing inside this window when the site and host support it.</div>
         <div id="viewer-frame-host" class="viewer-frame-host" aria-label="Embedded website viewer"></div>
+      </section>
+
+      <section id="chat-view" class="chat-view" hidden>
+        <aside class="chat-sidebar">
+          <div class="chat-brand"><img src="/favicon.png" alt="" /><div><strong>Orvian Chat</strong><span>Community space</span></div></div>
+          <nav class="chat-channels" aria-label="Chat channels">
+            <h3>Community</h3>
+            <button class="chat-channel active" type="button" data-channel="general"># general</button>
+            <button class="chat-channel" type="button" data-channel="introductions"># introductions</button>
+            <h3>Importants</h3>
+            <button class="chat-channel" type="button" data-channel="announcements"># announcements</button>
+            <button class="chat-channel" type="button" data-channel="rules"># rules</button>
+            <h3>MISC</h3>
+            <p class="chat-empty-category">No channels yet</p>
+          </nav>
+          <div class="chat-user"><span id="chat-user-avatar">O</span><div><strong id="chat-user-name">Member</strong><small id="chat-user-role">member</small></div></div>
+        </aside>
+        <main class="chat-main">
+          <header class="chat-header"><div><strong># <span id="chat-channel-name">general</span></strong><small id="chat-channel-description">Talk with the Orvian community</small></div><button id="chat-close" type="button" aria-label="Close chat">×</button></header>
+          <div id="chat-messages" class="chat-messages" aria-live="polite"></div>
+          <form id="chat-form" class="chat-composer"><input id="chat-input" maxlength="1000" autocomplete="off" placeholder="Message #general" /><button type="submit">Send</button></form>
+          <p id="chat-status" class="chat-status" role="status"></p>
+        </main>
       </section>
 
       <nav class="utility-dock" aria-label="Utilities">
@@ -159,7 +182,7 @@
       </div>
       <div id="auth-signed-in" hidden>
         <h2>Signed in</h2>
-        <div class="account-summary"><span class="account-avatar" id="account-avatar">O</span><div><strong id="account-username"></strong><small id="account-email"></small></div></div>
+        <div class="account-summary"><span class="account-avatar" id="account-avatar">O</span><div><strong id="account-username"></strong><small id="account-email"></small><small id="account-role"></small></div></div>
         <p class="muted">Chat and Lounge are unlocked on this browser.</p>
         <button id="logout-button" class="danger-button" type="button">Sign out</button>
       </div>
