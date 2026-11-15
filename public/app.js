@@ -37,6 +37,7 @@ async function openTarget(raw) {
     await navigator.serviceWorker.ready;
     address.value = target;
     viewport.src = `${__uv$config.prefix}${__uv$config.encodeUrl(target)}`;
+    document.body.classList.remove('home-mode');
     welcome.hidden = true;
     browser.hidden = false;
   } catch (error) {
@@ -67,5 +68,27 @@ document.querySelector('#home').addEventListener('click', () => {
   browser.hidden = true;
   welcome.hidden = false;
   address.value = '';
+  document.body.classList.add('home-mode');
   heroAddress.focus();
+});
+
+document.querySelectorAll('[data-target]').forEach((button) => {
+  button.addEventListener('click', () => openTarget(button.dataset.target));
+});
+
+document.querySelectorAll('[data-focus-search]').forEach((button) => {
+  button.addEventListener('click', () => heroAddress.focus());
+});
+
+document.querySelector('[data-clear-data]').addEventListener('click', async () => {
+  localStorage.clear();
+  sessionStorage.clear();
+  const registrations = await navigator.serviceWorker?.getRegistrations?.() || [];
+  await Promise.all(registrations.map((registration) => registration.unregister()));
+  message('Orvian site data cleared.');
+});
+
+document.querySelector('#add-shortcut').addEventListener('click', () => {
+  const target = window.prompt('Enter a website URL or search:');
+  if (target) openTarget(target);
 });

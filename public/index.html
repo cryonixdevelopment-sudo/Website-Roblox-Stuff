@@ -14,7 +14,7 @@
     <script src="/uv.config.js" defer></script>
     <script src="/app.js" defer></script>
   </head>
-  <body>
+  <body class="home-mode">
     <header class="topbar">
       <a class="brand" href="/" aria-label="Orvian home">
         <img class="brand-mark" src="/icon-192.png" alt="" />
@@ -36,21 +36,36 @@
     <main>
       <section id="welcome" class="welcome">
         <div class="glow" aria-hidden="true"></div>
-        <div class="welcome-card">
-          <span class="eyebrow">BUILT FOR WINDOWS + CHROMEOS</span>
-          <h1>
-            Browse with
-            <span class="orvian-word" aria-label="Orvian">
-              <span class="orvian-letter" style="--letter: 0" aria-hidden="true">O</span><span class="orvian-letter" style="--letter: 1" aria-hidden="true">r</span><span class="orvian-letter" style="--letter: 2" aria-hidden="true">v</span><span class="orvian-letter" style="--letter: 3" aria-hidden="true">i</span><span class="orvian-letter" style="--letter: 4" aria-hidden="true">a</span><span class="orvian-letter" style="--letter: 5" aria-hidden="true">n</span><span class="orvian-letter" style="--letter: 6" aria-hidden="true">.</span>
-            </span>
-          </h1>
-          <p>A focused browsing workspace optimized for Windows PCs and Chromebooks. Enter a website above to begin.</p>
+        <div class="home-shell">
+          <div class="home-identity">
+            <img src="/icon-192.png" alt="" />
+            <h1><span class="orvian-word" aria-label="Orvian"><span class="orvian-letter" style="--letter: 0" aria-hidden="true">O</span><span class="orvian-letter" style="--letter: 1" aria-hidden="true">r</span><span class="orvian-letter" style="--letter: 2" aria-hidden="true">v</span><span class="orvian-letter" style="--letter: 3" aria-hidden="true">i</span><span class="orvian-letter" style="--letter: 4" aria-hidden="true">a</span><span class="orvian-letter" style="--letter: 5" aria-hidden="true">n</span></span></h1>
+          </div>
           <form id="hero-form" class="hero-search" autocomplete="off">
             <label class="sr-only" for="hero-address">Enter a URL or search</label>
-            <input id="hero-address" type="text" inputmode="url" placeholder="example.com or search terms" autocapitalize="none" spellcheck="false" />
-            <button type="submit">Open</button>
+            <svg aria-hidden="true" viewBox="0 0 24 24"><path d="m21 21-4.6-4.6m2.1-5.15a7.25 7.25 0 1 1-14.5 0 7.25 7.25 0 0 1 14.5 0Z"/></svg>
+            <input id="hero-address" type="text" inputmode="url" placeholder="Search or enter URL..." autocapitalize="none" spellcheck="false" />
+            <button type="submit" aria-label="Open">→</button>
           </form>
-          <p class="notice">Only access websites and networks you are authorized to use.</p>
+
+          <div class="shortcut-grid" aria-label="Quick links">
+            <button class="shortcut" type="button" data-target="https://www.google.com"><span class="shortcut-icon google">G</span><span>Google</span></button>
+            <button class="shortcut" type="button" data-target="https://open.spotify.com"><span class="shortcut-icon spotify">≋</span><span>Spotify</span></button>
+            <button class="shortcut" type="button" data-target="https://www.youtube.com"><span class="shortcut-icon youtube">▶</span><span>YouTube</span></button>
+            <button class="shortcut" type="button" data-target="https://www.roblox.com"><span class="shortcut-icon roblox">◇</span><span>Roblox</span></button>
+            <button class="shortcut" type="button" data-target="https://www.wikipedia.org"><span class="shortcut-icon wikipedia">W</span><span>Wikipedia</span></button>
+            <button class="shortcut" type="button" data-target="https://github.com"><span class="shortcut-icon github">⌘</span><span>GitHub</span></button>
+            <button id="add-shortcut" class="shortcut add-shortcut" type="button"><span class="shortcut-icon">＋</span><span>Add shortcut</span></button>
+          </div>
+
+          <button class="discover-chip" type="button" data-target="https://trends.google.com"><span aria-hidden="true">⌁</span> Discover</button>
+          <p class="notice">For authorized use · Optimized for Windows and ChromeOS</p>
+          <nav class="home-dock" aria-label="Orvian">
+            <button type="button" data-focus-search><span>⌕</span>Search</button>
+            <button type="button" data-target="https://www.google.com/bookmarks"><span>◇</span>Links</button>
+            <button type="button" data-focus-search><span>⚙</span>Settings</button>
+            <button type="button" data-clear-data class="danger"><span>⌫</span>Clear data</button>
+          </nav>
         </div>
       </section>
       <section id="browser" class="browser" hidden>
