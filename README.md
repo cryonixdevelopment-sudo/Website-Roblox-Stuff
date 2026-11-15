@@ -4,18 +4,30 @@ A minimal, dark-themed web proxy for websites and networks you are authorized to
 
 This project does **not** include monitoring evasion, traffic disguising, or school-filter bypass features. Follow the rules of the network and websites you use.
 
-## Deploy from an iPhone with Render
+## Deploy from an iPhone with Railway
 
 No terminal or local computer is required.
 
-1. Create a free account at [render.com](https://render.com) and sign in.
-2. Open the [Render Blueprint page](https://dashboard.render.com/blueprints) and tap **New Blueprint Instance**.
-3. Connect GitHub when asked and select `cryonixdevelopment-sudo/Website-Roblox-Stuff`.
-4. Render detects `render.yaml`. Give the Blueprint any name and continue.
-5. Tap **Deploy Blueprint** and wait for the service to show **Live**.
-6. Open the public `onrender.com` address shown by Render.
+1. Create an account at [railway.com](https://railway.com) and sign in with GitHub.
+2. From the Railway dashboard, tap **New Project**.
+3. Choose **Deploy from GitHub repo** and select `cryonixdevelopment-sudo/Website-Roblox-Stuff`.
+4. Railway detects `railway.json`, installs the dependencies, and starts the server automatically.
+5. Open the new service, then go to **Settings** → **Networking**.
+6. Tap **Generate Domain**. Open the generated public `up.railway.app` address.
 
-Free Render services can sleep when unused, so the first load may take around a minute. The deployed URL is public and does not require a login.
+The deployed URL is public and does not require a login. Railway may require account verification or a paid plan depending on its current pricing and anti-abuse rules.
+
+## Koyeb or another Docker host
+
+The included `Dockerfile` provides a portable fallback:
+
+1. Create a web service and choose GitHub as the source.
+2. Select this repository and its `main` branch.
+3. Choose the repository's `Dockerfile` as the build method.
+4. Set the listening port to `3000` if the host asks.
+5. Deploy and enable a public HTTPS domain.
+
+The host must support WebSockets. Static hosts such as GitHub Pages and serverless-only platforms such as Vercel are not suitable for the Bare proxy backend.
 
 ## Updates
 
