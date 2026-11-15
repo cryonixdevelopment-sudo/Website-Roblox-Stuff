@@ -116,6 +116,7 @@
             <label class="setting range-setting"><span><strong>Background brightness</strong><small>Adjust the animated banner</small></span><input id="background-setting" type="range" min="20" max="100" step="5" /></label>
             <label class="setting"><span><strong>Show poster images</strong><small>Display the rotating artwork beside Orvian</small></span><input id="images-setting" type="checkbox" /></label>
             <label class="setting"><span><strong>Silver mouse trail</strong><small>Follow the pointer with a metallic glow</small></span><input id="trail-setting" type="checkbox" /></label>
+            <label class="setting"><span><strong>Ambient music</strong><small>Loop the background track with soft fades</small></span><input id="music-setting" type="checkbox" /></label>
             <label class="setting"><span><strong>Reduce motion</strong><small>Disable animations and movement</small></span><input id="motion-setting" type="checkbox" /></label>
           </div>
         </section>
@@ -135,6 +136,7 @@
     </dialog>
     <dialog id="account-dialog"><form method="dialog"><button class="close" aria-label="Close">×</button></form><p class="dialog-kicker">LOCAL PROFILE</p><h2>Account</h2><p class="muted">Your profile stays in this browser and is never uploaded.</p><label class="field">Display name<input id="display-name" maxlength="30" placeholder="Your name" /></label><button id="save-profile" class="primary" type="button">Save locally</button></dialog>
     <dialog id="tabs-dialog"><form method="dialog"><button class="close" aria-label="Close">×</button></form><p class="dialog-kicker">RECENT</p><h2>Tabs</h2><p class="muted">Orvian opens ordinary browser tabs. Use your browser’s tab bar to manage them.</p></dialog>
+    <audio id="ambient-audio" src="/audio/ambient.mp3" preload="auto"></audio>
     <div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
   </body>
 </html>

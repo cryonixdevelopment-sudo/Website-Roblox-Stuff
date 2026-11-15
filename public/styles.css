@@ -449,3 +449,25 @@ html.trail-disabled #silver-trail-canvas { display:none!important; }
   .settings-sidebar { grid-column:1; grid-row:1; }
   .settings-content { grid-column:1; grid-row:2; }
 }
+
+
+/* Full-page entrance transition */
+.dashboard {
+  opacity:0;
+  transform:translateY(8px) scale(.992);
+  filter:blur(5px);
+  transition:opacity 1.15s ease,transform 1.15s cubic-bezier(.2,.8,.2,1),filter 1s ease;
+}
+body.page-ready .dashboard {
+  opacity:1;
+  transform:none;
+  filter:none;
+}
+.background-video { transition:opacity 1.4s ease; }
+body:not(.page-ready) .background-video { opacity:0; }
+body:not(.page-ready) .side-art { visibility:hidden; }
+body.page-ready .side-art { visibility:visible; }
+@media (prefers-reduced-motion:reduce) {
+  .dashboard { opacity:1; transform:none; filter:none; transition:none; }
+  body:not(.page-ready) .background-video { opacity:var(--background-opacity,1); }
+}

@@ -1,4 +1,4 @@
-const storageKeys={links:'orvian-links',engine:'orvian-search-engine',newTabs:'orvian-new-tabs',reduceMotion:'orvian-reduce-motion',profile:'orvian-profile',theme:'orvian-theme',background:'orvian-background',preferHttps:'orvian-prefer-https',stripTracking:'orvian-strip-tracking',showImages:'orvian-show-images',showTrail:'orvian-show-trail'};
+const storageKeys={links:'orvian-links',engine:'orvian-search-engine',newTabs:'orvian-new-tabs',reduceMotion:'orvian-reduce-motion',profile:'orvian-profile',theme:'orvian-theme',background:'orvian-background',preferHttps:'orvian-prefer-https',stripTracking:'orvian-strip-tracking',music:'orvian-music',showImages:'orvian-show-images',showTrail:'orvian-show-trail'};
 const engines={ddg:'https://duckduckgo.com/?q=',google:'https://www.google.com/search?q=',bing:'https://www.bing.com/search?q=',brave:'https://search.brave.com/search?q=',startpage:'https://www.startpage.com/sp/search?query='};
 const searchForm=document.querySelector('#search-form');
 const searchInput=document.querySelector('#search-input');
@@ -11,6 +11,8 @@ const httpsSetting=document.querySelector('#https-setting');
 const trackingSetting=document.querySelector('#tracking-setting');
 const imagesSetting=document.querySelector('#images-setting');
 const trailSetting=document.querySelector('#trail-setting');
+const musicSetting=document.querySelector('#music-setting');
+const ambientAudio=document.querySelector('#ambient-audio');
 const savedLinks=document.querySelector('#saved-links');
 const displayName=document.querySelector('#display-name');
 const toast=document.querySelector('#toast');
@@ -176,6 +178,7 @@ httpsSetting.checked=localStorage.getItem(storageKeys.preferHttps)==='true';
 trackingSetting.checked=localStorage.getItem(storageKeys.stripTracking)==='true';
 imagesSetting.checked=localStorage.getItem(storageKeys.showImages)!=='false';
 trailSetting.checked=localStorage.getItem(storageKeys.showTrail)!=='false';
+musicSetting.checked=localStorage.getItem(storageKeys.music)!=='false';
 document.documentElement.classList.toggle('reduce-motion',motionSetting.checked);
 document.documentElement.dataset.theme=themeSetting.value;
 document.documentElement.classList.toggle('images-disabled',!imagesSetting.checked);
@@ -190,12 +193,13 @@ httpsSetting.addEventListener('change',()=>localStorage.setItem(storageKeys.pref
 trackingSetting.addEventListener('change',()=>localStorage.setItem(storageKeys.stripTracking,String(trackingSetting.checked)));
 imagesSetting.addEventListener('change',()=>{localStorage.setItem(storageKeys.showImages,String(imagesSetting.checked));document.documentElement.classList.toggle('images-disabled',!imagesSetting.checked)});
 trailSetting.addEventListener('change',()=>{localStorage.setItem(storageKeys.showTrail,String(trailSetting.checked));document.documentElement.classList.toggle('trail-disabled',!trailSetting.checked);syncSilverTrail()});
+musicSetting.addEventListener('change',()=>{localStorage.setItem(storageKeys.music,String(musicSetting.checked));syncAmbientAudio()});
 document.querySelectorAll('.settings-tab').forEach(tab=>tab.addEventListener('click',()=>{document.querySelectorAll('.settings-tab').forEach(item=>item.classList.toggle('active',item===tab));document.querySelectorAll('.settings-panel').forEach(panel=>panel.classList.toggle('active',panel.dataset.settingsPanel===tab.dataset.settingsTab))}));
 displayName.value=localStorage.getItem(storageKeys.profile)||'';
 document.querySelector('#save-profile').addEventListener('click',()=>{localStorage.setItem(storageKeys.profile,displayName.value.trim());notify('Profile saved locally')});
 function clearLocalData(){
   if(!window.confirm('Clear Orvian bookmarks, settings, and profile from this browser?'))return;
-  Object.values(storageKeys).forEach(key=>localStorage.removeItem(key));renderLinks();searchEngine.value='ddg';newTabSetting.checked=false;motionSetting.checked=false;themeSetting.value='midnight';backgroundSetting.value='100';httpsSetting.checked=false;trackingSetting.checked=false;imagesSetting.checked=true;trailSetting.checked=true;displayName.value='';document.documentElement.classList.remove('reduce-motion');document.documentElement.dataset.theme='midnight';document.documentElement.classList.remove('images-disabled','trail-disabled');document.documentElement.style.setProperty('--background-opacity','1');notify('Local data cleared');
+  Object.values(storageKeys).forEach(key=>localStorage.removeItem(key));renderLinks();searchEngine.value='ddg';newTabSetting.checked=false;motionSetting.checked=false;themeSetting.value='midnight';backgroundSetting.value='100';httpsSetting.checked=false;trackingSetting.checked=false;imagesSetting.checked=true;trailSetting.checked=true;musicSetting.checked=true;displayName.value='';document.documentElement.classList.remove('reduce-motion');document.documentElement.dataset.theme='midnight';document.documentElement.classList.remove('images-disabled','trail-disabled');document.documentElement.style.setProperty('--background-opacity','1');syncAmbientAudio();notify('Local data cleared');
 }
 document.querySelector('#clear-data').addEventListener('click',clearLocalData);
 document.querySelector('#settings-clear-data').addEventListener('click',clearLocalData);
@@ -313,3 +317,51 @@ function syncSilverTrail(){
   if(enabled)startSilverTrail();else stopSilverTrail();
 }
 syncSilverTrail();
+
+
+// Ambient audio with autoplay fallback and volume fades
+let ambientFadeFrame=0;
+let ambientUnlockBound=false;
+function fadeAmbientTo(target,duration,onComplete){
+  cancelAnimationFrame(ambientFadeFrame);
+  const startVolume=ambientAudio.volume;
+  const startedAt=performance.now();
+  const step=now=>{
+    const progress=Math.min(1,(now-startedAt)/duration);
+    ambientAudio.volume=startVolume+(target-startVolume)*(1-Math.pow(1-progress,3));
+    if(progress<1)ambientFadeFrame=requestAnimationFrame(step);
+    else if(onComplete)onComplete();
+  };
+  ambientFadeFrame=requestAnimationFrame(step);
+}
+function unlockAmbientAudio(){
+  if(!musicSetting.checked)return;
+  ambientAudio.play().then(()=>fadeAmbientTo(.42,1800)).catch(()=>{});
+}
+function bindAmbientUnlock(){
+  if(ambientUnlockBound)return;
+  ambientUnlockBound=true;
+  const unlock=()=>{
+    ambientUnlockBound=false;
+    removeEventListener('pointerdown',unlock);
+    removeEventListener('keydown',unlock);
+    unlockAmbientAudio();
+  };
+  addEventListener('pointerdown',unlock,{once:true,passive:true});
+  addEventListener('keydown',unlock,{once:true});
+}
+function syncAmbientAudio(){
+  if(!musicSetting.checked){
+    fadeAmbientTo(0,900,()=>ambientAudio.pause());
+    return;
+  }
+  ambientAudio.loop=true;
+  ambientAudio.volume=0;
+  ambientAudio.play().then(()=>fadeAmbientTo(.42,1800)).catch(bindAmbientUnlock);
+}
+document.addEventListener('visibilitychange',()=>{
+  if(document.hidden)fadeAmbientTo(0,650,()=>ambientAudio.pause());
+  else if(musicSetting.checked)syncAmbientAudio();
+});
+syncAmbientAudio();
+requestAnimationFrame(()=>requestAnimationFrame(()=>document.body.classList.add('page-ready')));
