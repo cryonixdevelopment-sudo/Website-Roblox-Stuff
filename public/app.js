@@ -247,18 +247,45 @@ rotateSidePosters();
 if(!window.matchMedia('(prefers-reduced-motion: reduce)').matches)setInterval(rotateSidePosters,9000);
 
 
-// Silver pointer trail
+// Smooth silver pointer trail
 if(window.matchMedia('(pointer:fine)').matches&&!window.matchMedia('(prefers-reduced-motion:reduce)').matches){
-  let lastTrailAt=0;
-  window.addEventListener('pointermove',event=>{
-    const now=performance.now();
-    if(now-lastTrailAt<24)return;
-    lastTrailAt=now;
-    const particle=document.createElement('span');
-    particle.className='cursor-trail';
-    particle.style.left=`${event.clientX}px`;
-    particle.style.top=`${event.clientY}px`;
-    document.body.appendChild(particle);
-    particle.addEventListener('animationend',()=>particle.remove(),{once:true});
-  },{passive:true});
+  const canvas=document.createElement('canvas');
+  canvas.id='silver-trail-canvas';
+  document.body.appendChild(canvas);
+  const context=canvas.getContext('2d');
+  const points=[];
+  const resizeTrail=()=>{
+    const ratio=Math.min(window.devicePixelRatio||1,2);
+    canvas.width=Math.round(innerWidth*ratio);
+    canvas.height=Math.round(innerHeight*ratio);
+    context.setTransform(ratio,0,0,ratio,0,0);
+  };
+  resizeTrail();
+  addEventListener('resize',resizeTrail,{passive:true});
+  addEventListener('pointermove',event=>{points.push({x:event.clientX,y:event.clientY,life:1});if(points.length>34)points.shift()},{passive:true});
+  const drawTrail=()=>{
+    context.clearRect(0,0,innerWidth,innerHeight);
+    if(points.length>1){
+      for(let index=1;index<points.length;index++){
+        const previous=points[index-1],point=points[index];
+        const gradient=context.createLinearGradient(previous.x,previous.y,point.x,point.y);
+        gradient.addColorStop(0,`rgba(130,135,148,${previous.life*.08})`);
+        gradient.addColorStop(.55,`rgba(224,227,235,${point.life*.62})`);
+        gradient.addColorStop(1,`rgba(255,255,255,${point.life*.82})`);
+        context.beginPath();
+        context.moveTo(previous.x,previous.y);
+        context.lineTo(point.x,point.y);
+        context.lineCap='round';
+        context.lineWidth=1.2+point.life*3.4;
+        context.strokeStyle=gradient;
+        context.shadowColor='rgba(218,222,232,.55)';
+        context.shadowBlur=8;
+        context.stroke();
+      }
+    }
+    points.forEach(point=>{point.life-=.035});
+    while(points[0]&&points[0].life<=0)points.shift();
+    requestAnimationFrame(drawTrail);
+  };
+  requestAnimationFrame(drawTrail);
 }
