@@ -704,3 +704,24 @@ html.music-disabled .music-transport { display:none; }
 @media (prefers-reduced-motion:reduce) {
   .compatibility-notice { animation-duration:6.2s; animation-timing-function:linear; }
 }
+
+
+/* Optional account authentication */
+.account-dialog { width:min(440px,calc(100% - 28px)); background:linear-gradient(145deg,rgba(35,36,43,.82),rgba(8,8,12,.76)); -webkit-backdrop-filter:blur(22px); backdrop-filter:blur(22px); }
+.auth-tabs { display:grid; grid-template-columns:1fr 1fr; gap:5px; margin:18px 0 14px; padding:4px; border:1px solid rgba(220,223,231,.13); border-radius:11px; background:rgba(0,0,0,.18); }
+.auth-tab { padding:9px; border:0; border-radius:8px; background:transparent; color:#92959e; cursor:pointer; font-size:.75rem; }
+.auth-tab.active { background:linear-gradient(145deg,rgba(235,237,242,.16),rgba(102,105,116,.07)); color:#f3f4f6; box-shadow:inset 0 1px rgba(255,255,255,.1); }
+.auth-form { display:grid; gap:2px; }
+.auth-form[hidden],#auth-signed-out[hidden],#auth-signed-in[hidden] { display:none; }
+.auth-form .field { gap:7px; margin:7px 0; font-size:.74rem; }
+.auth-form .field small { display:inline; margin-left:4px; color:#777b84; font-weight:400; }
+.auth-form input { width:100%; }
+.auth-form .primary { margin-top:9px; }
+.auth-message { min-height:18px; margin:11px 2px 0; color:#d794a4; font-size:.68rem; line-height:1.4; }
+.auth-message.success { color:#aebfb4; }
+.account-summary { display:flex; align-items:center; gap:12px; margin:18px 0; padding:14px; border:1px solid rgba(220,223,231,.14); border-radius:13px; background:rgba(232,234,240,.055); }
+.account-avatar { width:42px; height:42px; display:grid; place-items:center; border:1px solid rgba(230,232,238,.22); border-radius:50%; background:linear-gradient(145deg,#d9dce3,#666a75); color:#101116; font-weight:700; }
+.account-summary strong,.account-summary small { display:block; }
+.account-summary strong { color:#f1f2f5; }
+.account-summary small { margin-top:3px; color:#888b94; font-size:.65rem; }
+.tile.auth-locked { border-color:rgba(218,160,174,.24); }

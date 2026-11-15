@@ -8,15 +8,15 @@
     "start": "node server.js",
     "check": "node --check server.js && node --check public/app.js && node --check public/sw.js"
   },
-  "engines": {
-    "node": ">=20"
-  },
+  "engines": { "node": ">=20" },
   "dependencies": {
     "@mercuryworkshop/bare-mux": "^2.1.9",
     "@mercuryworkshop/libcurl-transport": "^1.5.2",
     "@mercuryworkshop/scramjet": "1.1.0",
     "@mercuryworkshop/wisp-js": "^0.4.1",
-    "express": "4.22.3"
+    "bcryptjs": "^3.0.3",
+    "express": "4.22.3",
+    "pg": "^8.16.3"
   },
   "type": "module"
 }

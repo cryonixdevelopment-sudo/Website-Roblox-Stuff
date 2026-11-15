@@ -64,3 +64,17 @@ HTTPS is required in production because Scramjet relies on a service worker and 
 ## License
 
 MIT
+
+
+## Free account database setup (phone-friendly)
+
+Orvian accounts use PostgreSQL. Neon offers a free tier and does not require a local computer.
+
+1. Open [neon.tech](https://neon.tech) on your phone and create a free account.
+2. Create a project using the free plan.
+3. Copy its pooled PostgreSQL connection string.
+4. In Railway, open the Orvian service and choose **Variables**.
+5. Add a variable named `DATABASE_URL` and paste the Neon connection string as its value.
+6. Redeploy Orvian. The user and session tables are created automatically.
+
+Do not paste the connection string into GitHub. Without `DATABASE_URL`, Orvian remains public but account creation reports that setup is incomplete. Accounts are optional; only Chat and Lounge require one.

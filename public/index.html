@@ -56,8 +56,8 @@
             <a class="tile" href="https://www.youtube.com/"><span class="tile-icon pixel-icon"><img src="/icons/movies.png" alt="" /></span><span>Movies</span></a>
             <a class="tile" href="https://www.crunchyroll.com/"><span class="tile-icon pixel-icon"><img src="/icons/anime.png" alt="" /></span><span>Anime</span></a>
             <a class="tile" href="https://music.youtube.com/"><span class="tile-icon pixel-icon"><img src="/icons/music.png" alt="" /></span><span>Music</span></a>
-            <button class="tile" type="button" data-panel="links-dialog"><span class="tile-icon pixel-icon"><img src="/icons/lounge.png" alt="" /></span><span>Lounge</span></button>
-            <a class="tile" href="https://discord.com/app"><span class="tile-icon pixel-icon"><img src="/icons/chat.png" alt="" /></span><span>Chat</span></a>
+            <button class="tile" type="button" data-panel="links-dialog" data-auth-required><span class="tile-icon pixel-icon"><img src="/icons/lounge.png" alt="" /></span><span>Lounge</span></button>
+            <a class="tile" href="https://discord.com/app" data-auth-required><span class="tile-icon pixel-icon"><img src="/icons/chat.png" alt="" /></span><span>Chat</span></a>
           </div>
           <div class="shortcut-divider" role="separator" aria-label="Add bookmark"></div>
           <div class="bookmark-action">
@@ -137,7 +137,33 @@
         </section>
       </div>
     </dialog>
-    <dialog id="account-dialog"><form method="dialog"><button class="close" aria-label="Close">×</button></form><p class="dialog-kicker">LOCAL PROFILE</p><h2>Account</h2><p class="muted">Your profile stays in this browser and is never uploaded.</p><label class="field">Display name<input id="display-name" maxlength="30" placeholder="Your name" /></label><button id="save-profile" class="primary" type="button">Save locally</button></dialog>
+    <dialog id="account-dialog" class="account-dialog">
+      <form method="dialog"><button class="close" aria-label="Close">×</button></form>
+      <p class="dialog-kicker">OPTIONAL ACCOUNT</p>
+      <div id="auth-signed-out">
+        <h2>Welcome to Orvian</h2>
+        <p class="muted">An account is only required for Chat and Lounge. Everything else stays available.</p>
+        <div class="auth-tabs"><button class="auth-tab active" type="button" data-auth-mode="login">Sign in</button><button class="auth-tab" type="button" data-auth-mode="signup">Create account</button></div>
+        <form id="login-form" class="auth-form">
+          <label class="field">Username<input name="username" maxlength="24" autocomplete="username" required /></label>
+          <label class="field">Password<input name="password" type="password" minlength="8" maxlength="128" autocomplete="current-password" required /></label>
+          <button class="primary" type="submit">Sign in</button>
+        </form>
+        <form id="signup-form" class="auth-form" hidden>
+          <label class="field">Username<input name="username" maxlength="24" pattern="[A-Za-z0-9_]{3,24}" autocomplete="username" required /></label>
+          <label class="field">Email <small>Optional</small><input name="email" type="email" maxlength="254" autocomplete="email" /></label>
+          <label class="field">Password<input name="password" type="password" minlength="8" maxlength="128" autocomplete="new-password" required /></label>
+          <button class="primary" type="submit">Create account</button>
+        </form>
+        <p id="auth-message" class="auth-message" role="status" aria-live="polite"></p>
+      </div>
+      <div id="auth-signed-in" hidden>
+        <h2>Signed in</h2>
+        <div class="account-summary"><span class="account-avatar" id="account-avatar">O</span><div><strong id="account-username"></strong><small id="account-email"></small></div></div>
+        <p class="muted">Chat and Lounge are unlocked on this browser.</p>
+        <button id="logout-button" class="danger-button" type="button">Sign out</button>
+      </div>
+    </dialog>
     <dialog id="tabs-dialog"><form method="dialog"><button class="close" aria-label="Close">×</button></form><p class="dialog-kicker">RECENT</p><h2>Tabs</h2><p class="muted">Orvian opens ordinary browser tabs. Use your browser’s tab bar to manage them.</p></dialog>
     <section id="music-player" class="music-player" aria-label="Music player">
       <div class="music-player-head">

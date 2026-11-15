@@ -14,7 +14,6 @@ const trailSetting=document.querySelector('#trail-setting');
 const musicSetting=document.querySelector('#music-setting');
 const ambientAudio=document.querySelector('#ambient-audio');
 const savedLinks=document.querySelector('#saved-links');
-const displayName=document.querySelector('#display-name');
 const toast=document.querySelector('#toast');
 const launcher=document.querySelector('.launcher');
 const viewer=document.querySelector('#viewer');
@@ -152,7 +151,7 @@ function addLink(){
 }
 
 searchForm.addEventListener('submit',event=>{event.preventDefault();openSearch(searchInput.value)});
-document.querySelectorAll('.tile[href],.trending[href]').forEach(link=>link.addEventListener('click',event=>{event.preventDefault();openUrl(link.href)}));
+document.querySelectorAll('.tile[href],.trending[href]').forEach(link=>link.addEventListener('click',event=>{event.preventDefault();if(link.hasAttribute('data-auth-required')&&!authUser){openAuthPrompt();return}openUrl(link.href)}));
 document.querySelector('#viewer-close').addEventListener('click',closeViewer);
 document.querySelector('#viewer-reload').addEventListener('click',()=>{if(currentViewerUrl)showInViewer(currentViewerUrl,false)});
 viewerBack.addEventListener('click',()=>{
@@ -166,7 +165,7 @@ viewerBack.addEventListener('click',()=>{
   viewerHistory.pop();showInViewer(viewerHistory.at(-1),false);
 });
 viewerExternal.addEventListener('click',()=>{if(currentViewerUrl)window.open(currentViewerUrl,'_blank','noopener,noreferrer')});
-document.querySelectorAll('[data-panel]').forEach(button=>button.addEventListener('click',()=>document.querySelector(`#${button.dataset.panel}`)?.showModal()));
+document.querySelectorAll('[data-panel]').forEach(button=>button.addEventListener('click',()=>{if(button.hasAttribute('data-auth-required')&&!authUser){openAuthPrompt();return}document.querySelector(`#${button.dataset.panel}`)?.showModal()}));
 document.querySelector('#add-bookmark').addEventListener('click',addLink);
 document.querySelector('#dialog-add-link').addEventListener('click',addLink);
 searchEngine.value=localStorage.getItem(storageKeys.engine)||'ddg';
@@ -195,11 +194,9 @@ imagesSetting.addEventListener('change',()=>{localStorage.setItem(storageKeys.sh
 trailSetting.addEventListener('change',()=>{localStorage.setItem(storageKeys.showTrail,String(trailSetting.checked));document.documentElement.classList.toggle('trail-disabled',!trailSetting.checked);syncSilverTrail()});
 musicSetting.addEventListener('change',()=>{localStorage.setItem(storageKeys.music,String(musicSetting.checked));syncAmbientAudio()});
 document.querySelectorAll('.settings-tab').forEach(tab=>tab.addEventListener('click',()=>{document.querySelectorAll('.settings-tab').forEach(item=>item.classList.toggle('active',item===tab));document.querySelectorAll('.settings-panel').forEach(panel=>panel.classList.toggle('active',panel.dataset.settingsPanel===tab.dataset.settingsTab))}));
-displayName.value=localStorage.getItem(storageKeys.profile)||'';
-document.querySelector('#save-profile').addEventListener('click',()=>{localStorage.setItem(storageKeys.profile,displayName.value.trim());notify('Profile saved locally')});
 function clearLocalData(){
   if(!window.confirm('Clear Orvian bookmarks, settings, and profile from this browser?'))return;
-  Object.values(storageKeys).forEach(key=>localStorage.removeItem(key));renderLinks();searchEngine.value='ddg';newTabSetting.checked=false;motionSetting.checked=false;themeSetting.value='midnight';backgroundSetting.value='100';httpsSetting.checked=false;trackingSetting.checked=false;imagesSetting.checked=true;trailSetting.checked=true;musicSetting.checked=true;displayName.value='';document.documentElement.classList.remove('reduce-motion');document.documentElement.dataset.theme='midnight';document.documentElement.classList.remove('images-disabled','trail-disabled');document.documentElement.style.setProperty('--background-opacity','1');syncAmbientAudio();notify('Local data cleared');
+  Object.values(storageKeys).forEach(key=>localStorage.removeItem(key));renderLinks();searchEngine.value='ddg';newTabSetting.checked=false;motionSetting.checked=false;themeSetting.value='midnight';backgroundSetting.value='100';httpsSetting.checked=false;trackingSetting.checked=false;imagesSetting.checked=true;trailSetting.checked=true;musicSetting.checked=true;document.documentElement.classList.remove('reduce-motion');document.documentElement.dataset.theme='midnight';document.documentElement.classList.remove('images-disabled','trail-disabled');document.documentElement.style.setProperty('--background-opacity','1');syncAmbientAudio();notify('Local data cleared');
 }
 document.querySelector('#clear-data').addEventListener('click',clearLocalData);
 document.querySelector('#settings-clear-data').addEventListener('click',clearLocalData);
@@ -487,3 +484,64 @@ if(!isSupportedOrvianDevice&&compatibilityNotice){
   compatibilityNotice.hidden=false;
   window.setTimeout(()=>compatibilityNotice.remove(),6500);
 }
+
+
+// Optional shared accounts for Chat and Lounge
+let authUser=null;
+const accountDialog=document.querySelector('#account-dialog');
+const authSignedOut=document.querySelector('#auth-signed-out');
+const authSignedIn=document.querySelector('#auth-signed-in');
+const authMessage=document.querySelector('#auth-message');
+const loginForm=document.querySelector('#login-form');
+const signupForm=document.querySelector('#signup-form');
+function renderAuthState(){
+  authSignedOut.hidden=Boolean(authUser);
+  authSignedIn.hidden=!authUser;
+  document.querySelectorAll('[data-auth-required]').forEach(element=>element.classList.toggle('auth-locked',!authUser));
+  if(authUser){
+    document.querySelector('#account-username').textContent=authUser.username;
+    document.querySelector('#account-email').textContent=authUser.email||'No email added';
+    document.querySelector('#account-avatar').textContent=authUser.username.charAt(0).toUpperCase();
+  }
+}
+function openAuthPrompt(){
+  authMessage.textContent='Sign in or create an account to unlock Chat and Lounge.';
+  accountDialog.showModal();
+}
+async function refreshAuth(){
+  try{
+    const response=await fetch('/api/auth/me',{credentials:'same-origin',cache:'no-store'});
+    const data=await response.json();
+    authUser=data.user||null;
+    if(!data.available&&!authUser)authMessage.textContent='Account setup is not connected yet.';
+  }catch{authUser=null}
+  renderAuthState();
+}
+document.querySelectorAll('.auth-tab').forEach(tab=>tab.addEventListener('click',()=>{
+  document.querySelectorAll('.auth-tab').forEach(item=>item.classList.toggle('active',item===tab));
+  loginForm.hidden=tab.dataset.authMode!=='login';
+  signupForm.hidden=tab.dataset.authMode!=='signup';
+  authMessage.textContent='';
+}));
+async function submitAuthForm(form,endpoint){
+  authMessage.classList.remove('success');
+  authMessage.textContent='Please wait…';
+  const payload=Object.fromEntries(new FormData(form));
+  try{
+    const response=await fetch(endpoint,{method:'POST',headers:{'Content-Type':'application/json'},credentials:'same-origin',body:JSON.stringify(payload)});
+    const data=await response.json();
+    if(!response.ok)throw new Error(data.error||'Unable to continue.');
+    authUser=data.user;
+    form.reset();
+    authMessage.textContent='';
+    renderAuthState();
+    notify('Signed in as '+authUser.username);
+  }catch(error){authMessage.textContent=error.message}
+}
+loginForm.addEventListener('submit',event=>{event.preventDefault();submitAuthForm(loginForm,'/api/auth/login')});
+signupForm.addEventListener('submit',event=>{event.preventDefault();submitAuthForm(signupForm,'/api/auth/signup')});
+document.querySelector('#logout-button').addEventListener('click',async()=>{
+  await fetch('/api/auth/logout',{method:'POST',credentials:'same-origin'}).catch(()=>{});
+  authUser=null;renderAuthState();notify('Signed out');
+});
+refreshAuth();
