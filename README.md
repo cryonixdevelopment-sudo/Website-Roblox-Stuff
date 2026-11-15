@@ -1,6 +1,6 @@
 # Orvian
 
-The current public frontend is a static personal start page inspired by compact desktop browser dashboards. It provides direct web search, app shortcuts, local bookmarks, preferences, and a local-only profile. It does not proxy or relay browser traffic.
+The current public frontend is a static personal start page inspired by compact desktop browser dashboards. It provides direct web search, app shortcuts, local bookmarks, preferences, a local-only profile, and an in-page iframe viewer. It does not proxy or relay browser traffic. Websites can independently refuse iframe embedding through their security headers; Orvian provides an external-tab fallback for those sites.
 
 ## Free frontend hosting with GitHub Pages
 

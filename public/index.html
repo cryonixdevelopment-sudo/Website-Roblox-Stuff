@@ -11,7 +11,7 @@
     <link rel="manifest" href="/manifest.webmanifest" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link href="https://fonts.googleapis.com/css2?family=Great+Vibes&family=Montserrat:wght@400;500;600;700&display=swap" rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@1,600&family=Montserrat:wght@400;500;600;700&display=swap" rel="stylesheet" />
     <link rel="stylesheet" href="/styles.css" />
     <script src="/app.js" defer></script>
   </head>
@@ -40,6 +40,21 @@
         </div>
 
         <a class="trending" href="https://trends.google.com/trending"><span>♨</span> Trending</a>
+      </section>
+
+      <section id="viewer" class="viewer" hidden>
+        <header class="viewer-bar">
+          <button id="viewer-back" type="button" aria-label="Back">←</button>
+          <button id="viewer-reload" type="button" aria-label="Reload">↻</button>
+          <div class="viewer-address">
+            <span aria-hidden="true">●</span>
+            <span id="viewer-url">Website</span>
+          </div>
+          <button id="viewer-external" type="button">Open externally ↗</button>
+          <button id="viewer-close" type="button" aria-label="Return home">×</button>
+        </header>
+        <div class="viewer-note">Some websites block in-page viewing. Use “Open externally” if the page refuses to load.</div>
+        <iframe id="viewer-frame" title="Website viewer" allow="fullscreen; autoplay; clipboard-read; clipboard-write" referrerpolicy="strict-origin-when-cross-origin"></iframe>
       </section>
 
       <nav class="utility-dock" aria-label="Utilities">

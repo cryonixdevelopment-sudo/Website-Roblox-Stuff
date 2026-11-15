@@ -8,6 +8,13 @@ const motionSetting=document.querySelector('#motion-setting');
 const savedLinks=document.querySelector('#saved-links');
 const displayName=document.querySelector('#display-name');
 const toast=document.querySelector('#toast');
+const launcher=document.querySelector('.launcher');
+const viewer=document.querySelector('#viewer');
+const viewerFrame=document.querySelector('#viewer-frame');
+const viewerUrl=document.querySelector('#viewer-url');
+const viewerExternal=document.querySelector('#viewer-external');
+let viewerHistory=[];
+let currentViewerUrl='';
 let toastTimer;
 
 function readLinks(){try{return JSON.parse(localStorage.getItem(storageKeys.links)||'[]')}catch{return[]}}
@@ -23,7 +30,20 @@ function openUrl(value){
   const url=normalize(value);
   if(!url)return;
   if(localStorage.getItem(storageKeys.newTabs)==='true')window.open(url,'_blank','noopener,noreferrer');
-  else window.location.assign(url);
+  else showInViewer(url);
+}
+function showInViewer(url,record=true){
+  if(record&&currentViewerUrl!==url)viewerHistory.push(url);
+  currentViewerUrl=url;
+  viewerUrl.textContent=url;
+  viewerFrame.src=url;
+  launcher.hidden=true;
+  viewer.hidden=false;
+  document.body.classList.add('viewing');
+}
+function closeViewer(){
+  viewerFrame.src='about:blank';viewer.hidden=true;launcher.hidden=false;
+  document.body.classList.remove('viewing');searchInput.focus();
 }
 function notify(text){
   clearTimeout(toastTimer);
@@ -36,6 +56,7 @@ function renderLinks(){
   links.forEach((link,index)=>{
     const row=document.createElement('div');row.className='saved-link';
     const anchor=document.createElement('a');anchor.href=link.url;anchor.textContent=link.name;
+    anchor.addEventListener('click',event=>{event.preventDefault();document.querySelector('#links-dialog').close();openUrl(link.url)});
     const remove=document.createElement('button');remove.type='button';remove.textContent='Remove';
     remove.addEventListener('click',()=>{const updated=readLinks();updated.splice(index,1);localStorage.setItem(storageKeys.links,JSON.stringify(updated));renderLinks()});
     row.append(anchor,remove);savedLinks.append(row);
@@ -50,6 +71,14 @@ function addLink(){
 }
 
 searchForm.addEventListener('submit',event=>{event.preventDefault();openUrl(searchInput.value)});
+document.querySelectorAll('.tile[href],.trending[href]').forEach(link=>link.addEventListener('click',event=>{event.preventDefault();openUrl(link.href)}));
+document.querySelector('#viewer-close').addEventListener('click',closeViewer);
+document.querySelector('#viewer-reload').addEventListener('click',()=>{if(currentViewerUrl)viewerFrame.src=currentViewerUrl});
+document.querySelector('#viewer-back').addEventListener('click',()=>{
+  if(viewerHistory.length<=1){closeViewer();return}
+  viewerHistory.pop();showInViewer(viewerHistory.at(-1),false);
+});
+viewerExternal.addEventListener('click',()=>{if(currentViewerUrl)window.open(currentViewerUrl,'_blank','noopener,noreferrer')});
 document.querySelectorAll('[data-panel]').forEach(button=>button.addEventListener('click',()=>document.querySelector(`#${button.dataset.panel}`)?.showModal()));
 document.querySelector('#add-bookmark').addEventListener('click',addLink);
 document.querySelector('#dialog-add-link').addEventListener('click',addLink);
