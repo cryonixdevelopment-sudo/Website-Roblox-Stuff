@@ -725,3 +725,15 @@ html.music-disabled .music-transport { display:none; }
 .account-summary strong { color:#f1f2f5; }
 .account-summary small { margin-top:3px; color:#888b94; font-size:.65rem; }
 .tile.auth-locked { border-color:rgba(218,160,174,.24); }
+
+
+/* Account field requirements */
+.auth-form .field-requirement {
+  display:block;
+  margin:0 2px;
+  color:#858891;
+  font-size:.6rem;
+  font-weight:400;
+  line-height:1.4;
+}
+.auth-form input:invalid:not(:placeholder-shown) { border-color:rgba(222,126,147,.48); }

@@ -145,14 +145,14 @@
         <p class="muted">An account is only required for Chat and Lounge. Everything else stays available.</p>
         <div class="auth-tabs"><button class="auth-tab active" type="button" data-auth-mode="login">Sign in</button><button class="auth-tab" type="button" data-auth-mode="signup">Create account</button></div>
         <form id="login-form" class="auth-form">
-          <label class="field">Username<input name="username" maxlength="24" autocomplete="username" required /></label>
-          <label class="field">Password<input name="password" type="password" minlength="8" maxlength="128" autocomplete="current-password" required /></label>
+          <label class="field">Username<input name="username" minlength="3" maxlength="24" pattern="[A-Za-z0-9_]+" autocomplete="username" required /><small class="field-requirement">3–24 characters: letters, numbers, and underscores only.</small></label>
+          <label class="field">Password<input name="password" type="password" minlength="8" maxlength="128" autocomplete="current-password" required /><small class="field-requirement">8–128 characters.</small></label>
           <button class="primary" type="submit">Sign in</button>
         </form>
         <form id="signup-form" class="auth-form" hidden>
           <label class="field">Username<input name="username" maxlength="24" pattern="[A-Za-z0-9_]{3,24}" autocomplete="username" required /></label>
           <label class="field">Email <small>Optional</small><input name="email" type="email" maxlength="254" autocomplete="email" /></label>
-          <label class="field">Password<input name="password" type="password" minlength="8" maxlength="128" autocomplete="new-password" required /></label>
+          <label class="field">Password<input name="password" type="password" minlength="8" maxlength="128" autocomplete="new-password" required /><small class="field-requirement">8–128 characters.</small></label>
           <button class="primary" type="submit">Create account</button>
         </form>
         <p id="auth-message" class="auth-message" role="status" aria-live="polite"></p>
