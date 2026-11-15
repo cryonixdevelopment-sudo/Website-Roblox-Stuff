@@ -62,6 +62,7 @@ function ensureAuthSchema(){
     ALTER TABLE orvian_users ADD COLUMN IF NOT EXISTS display_name VARCHAR(32);
     ALTER TABLE orvian_users ADD COLUMN IF NOT EXISTS bio VARCHAR(160);
     ALTER TABLE orvian_users ADD COLUMN IF NOT EXISTS avatar_data TEXT;
+    ALTER TABLE orvian_users ADD COLUMN IF NOT EXISTS banner_data TEXT;
     ALTER TABLE orvian_users ADD COLUMN IF NOT EXISTS presence_status VARCHAR(16) NOT NULL DEFAULT 'online';
     ALTER TABLE orvian_users ADD COLUMN IF NOT EXISTS profile_effect VARCHAR(16) NOT NULL DEFAULT 'none';
     ALTER TABLE orvian_users ADD COLUMN IF NOT EXISTS last_seen TIMESTAMPTZ;
@@ -104,7 +105,7 @@ async function currentAuthUser(req){
   if(!token)return null;
   await ensureAuthSchema();
   const result=await authPool.query(`
-    SELECT u.id,u.username,u.email,u.role,u.display_name,u.bio,u.avatar_data,u.presence_status,u.profile_effect FROM orvian_sessions s
+    SELECT u.id,u.username,u.email,u.role,u.display_name,u.bio,u.avatar_data,u.banner_data,u.presence_status,u.profile_effect FROM orvian_sessions s
     JOIN orvian_users u ON u.id=s.user_id
     WHERE s.token_hash=$1 AND s.expires_at>NOW()
   `,[tokenHash(token)]);
@@ -112,7 +113,7 @@ async function currentAuthUser(req){
 }
 function publicUser(user){return user?{
   id:String(user.id),username:user.username,email:user.email||null,role:user.role||'member',
-  displayName:user.display_name||user.username,bio:user.bio||'',avatar:user.avatar_data||null,
+  displayName:user.display_name||user.username,bio:user.bio||'',avatar:user.avatar_data||null,banner:user.banner_data||null,
   status:user.presence_status||'online',effect:user.profile_effect||'none'
 }:null}
 app.get('/api/auth/me',async(req,res)=>{
@@ -145,7 +146,7 @@ app.post('/api/auth/login',authRateLimit,async(req,res)=>{
   const password=String(req.body?.password||'');
   try{
     await ensureAuthSchema();
-    const result=await authPool.query('SELECT id,username,email,password_hash,role,display_name,bio,avatar_data,presence_status,profile_effect FROM orvian_users WHERE username_lower=$1',[username]);
+    const result=await authPool.query('SELECT id,username,email,password_hash,role,display_name,bio,avatar_data,banner_data,presence_status,profile_effect FROM orvian_users WHERE username_lower=$1',[username]);
     const user=result.rows[0];
     if(!user||!await bcrypt.compare(password,user.password_hash))return res.status(401).json({error:'Incorrect username or password.'});
     await createSession(req,res,user.id);
@@ -175,26 +176,29 @@ app.patch('/api/account/profile',requireAccount,async(req,res)=>{
   const displayName=String(req.body?.displayName||'').trim();
   const bio=String(req.body?.bio||'').trim();
   const avatar=req.body?.avatar===null?null:String(req.body?.avatar||'');
+  const banner=req.body?.banner===null?null:String(req.body?.banner||'');
   const status=String(req.body?.status||'online');
   const effect=String(req.body?.effect||'none');
   if(displayName.length<1||displayName.length>32)return res.status(400).json({error:'Display name must be 1–32 characters.'});
   if(bio.length>160)return res.status(400).json({error:'Bio must be 160 characters or less.'});
   if(avatar&&(!/^data:image\/(png|jpeg|webp);base64,/i.test(avatar)||avatar.length>250000))
     return res.status(400).json({error:'Profile picture must be a small PNG, JPEG, or WebP image.'});
+  if(banner&&(!/^data:image\/(png|jpeg|webp);base64,/i.test(banner)||banner.length>500000))
+    return res.status(400).json({error:'Banner must be a small PNG, JPEG, or WebP image.'});
   if(!['online','idle','dnd','invisible'].includes(status))return res.status(400).json({error:'Invalid status.'});
   if(!['none','silver','pulse','sparkle'].includes(effect))return res.status(400).json({error:'Invalid profile effect.'});
   try{
     const result=await authPool.query(`
-      UPDATE orvian_users SET display_name=$1,bio=$2,avatar_data=$3,presence_status=$4,profile_effect=$5,last_seen=NOW()
-      WHERE id=$6 RETURNING id,username,email,role,display_name,bio,avatar_data,presence_status,profile_effect
-    `,[displayName,bio,avatar,status,effect,req.authUser.id]);
+      UPDATE orvian_users SET display_name=$1,bio=$2,avatar_data=$3,banner_data=$4,presence_status=$5,profile_effect=$6,last_seen=NOW()
+      WHERE id=$7 RETURNING id,username,email,role,display_name,bio,avatar_data,banner_data,presence_status,profile_effect
+    `,[displayName,bio,avatar,banner,status,effect,req.authUser.id]);
     res.json({user:publicUser(result.rows[0])});
   }catch(error){console.error('Profile update failed:',error.message);res.status(500).json({error:'Unable to save profile.'})}
 });
 app.get('/api/chat/members',requireAccount,async(_req,res)=>{
   try{
     const result=await authPool.query(`
-      SELECT id,username,role,display_name,bio,avatar_data,presence_status,profile_effect,last_seen,
+      SELECT id,username,role,display_name,bio,avatar_data,banner_data,presence_status,profile_effect,last_seen,
         CASE
           WHEN presence_status='invisible' THEN 'offline'
           WHEN last_seen>NOW()-INTERVAL '2 minutes' THEN presence_status
@@ -207,7 +211,7 @@ app.get('/api/chat/members',requireAccount,async(_req,res)=>{
     `);
     res.json({members:result.rows.map(member=>({
       id:String(member.id),username:member.username,displayName:member.display_name||member.username,
-      role:member.role,bio:member.bio||'',avatar:member.avatar_data||null,
+      role:member.role,bio:member.bio||'',avatar:member.avatar_data||null,banner:member.banner_data||null,
       status:member.effective_status,effect:member.profile_effect||'none'
     }))});
   }catch(error){console.error('Members fetch failed:',error.message);res.status(500).json({error:'Unable to load members.'})}
