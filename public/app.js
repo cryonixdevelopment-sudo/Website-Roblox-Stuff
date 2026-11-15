@@ -17,6 +17,11 @@ const viewer=document.querySelector('#viewer');
 const viewerFrame=document.querySelector('#viewer-frame');
 const viewerUrl=document.querySelector('#viewer-url');
 const viewerExternal=document.querySelector('#viewer-external');
+const viewerNote=document.querySelector('#viewer-note');
+const viewerBack=document.querySelector('#viewer-back');
+const proxyAvailable=Boolean(window.Ultraviolet&&window.__uv$config&&'serviceWorker' in navigator&&window.isSecureContext);
+let proxyReadyPromise=null;
+let viewerUsesProxy=false;
 let viewerHistory=[];
 let currentViewerUrl='';
 let toastTimer;
@@ -35,30 +40,66 @@ function normalize(value){
   const engine=localStorage.getItem(storageKeys.engine)||'ddg';
   return `${engines[engine]||engines.ddg}${encodeURIComponent(input)}`;
 }
+function prepareProxy(){
+  if(!proxyAvailable)return Promise.resolve(false);
+  if(!proxyReadyPromise){
+    proxyReadyPromise=navigator.serviceWorker.register('/sw.js',{scope:'/service/'})
+      .then(registration=>new Promise(resolve=>{
+        if(registration.active)return resolve(true);
+        const worker=registration.installing||registration.waiting;
+        if(!worker)return resolve(false);
+        const timeout=setTimeout(()=>resolve(false),8000);
+        worker.addEventListener('statechange',()=>{
+          if(worker.state==='activated'){clearTimeout(timeout);resolve(true)}
+          if(worker.state==='redundant'){clearTimeout(timeout);resolve(false)}
+        });
+      }))
+      .catch(error=>{console.warn('Orvian in-page browser unavailable:',error);return false});
+  }
+  return proxyReadyPromise;
+}
+function proxyUrl(url){
+  return window.__uv$config.prefix+window.__uv$config.encodeUrl(url);
+}
 function openUrl(value){
   const url=normalize(value);
   if(!url)return;
-  if(localStorage.getItem(storageKeys.newTabs)==='true')window.open(url,'_blank','noopener,noreferrer');
-  else showInViewer(url);
+  if(localStorage.getItem(storageKeys.newTabs)==='true'){
+    window.open(url,'_blank','noopener,noreferrer');
+    return;
+  }
+  showInViewer(url);
 }
-function openSearch(value){
-  const url=normalize(value);
-  if(!url)return;
-  if(localStorage.getItem(storageKeys.newTabs)==='true')window.open(url,'_blank','noopener,noreferrer');
-  else window.location.assign(url);
-}
-function showInViewer(url,record=true){
+function openSearch(value){openUrl(value)}
+async function showInViewer(url,record=true){
   if(record&&currentViewerUrl!==url)viewerHistory.push(url);
   currentViewerUrl=url;
   viewerUrl.textContent=url;
-  viewerFrame.src=url;
   launcher.hidden=true;
   viewer.hidden=false;
   document.body.classList.add('viewing');
+  viewerFrame.removeAttribute('src');
+  viewerNote.textContent='Connecting to the in-page browser…';
+  const requestedUrl=url;
+  const ready=await prepareProxy();
+  if(currentViewerUrl!==requestedUrl||viewer.hidden)return;
+  viewerUsesProxy=ready;
+  if(ready){
+    viewerNote.textContent='Browsing inside Orvian. Some sites may still limit functionality.';
+    viewerFrame.src=proxyUrl(url);
+  }else{
+    viewerNote.textContent='Embedded mode is limited on this host. Some sites block frames; a Node.js deployment with HTTPS and WebSockets is required for full in-page browsing.';
+    viewerFrame.src=url;
+  }
 }
 function closeViewer(){
-  viewerFrame.src='about:blank';viewer.hidden=true;launcher.hidden=false;
-  document.body.classList.remove('viewing');searchInput.focus();
+  currentViewerUrl='';
+  viewerHistory=[];
+  viewerFrame.src='about:blank';
+  viewer.hidden=true;
+  launcher.hidden=false;
+  document.body.classList.remove('viewing');
+  searchInput.focus();
 }
 function notify(text){
   clearTimeout(toastTimer);
@@ -88,10 +129,26 @@ function addLink(){
 searchForm.addEventListener('submit',event=>{event.preventDefault();openSearch(searchInput.value)});
 document.querySelectorAll('.tile[href],.trending[href]').forEach(link=>link.addEventListener('click',event=>{event.preventDefault();openUrl(link.href)}));
 document.querySelector('#viewer-close').addEventListener('click',closeViewer);
-document.querySelector('#viewer-reload').addEventListener('click',()=>{if(currentViewerUrl)viewerFrame.src=currentViewerUrl});
-document.querySelector('#viewer-back').addEventListener('click',()=>{
+document.querySelector('#viewer-reload').addEventListener('click',()=>{if(currentViewerUrl)showInViewer(currentViewerUrl,false)});
+viewerBack.addEventListener('click',()=>{
+  if(viewerUsesProxy){
+    try{
+      viewerFrame.contentWindow.history.back();
+      return;
+    }catch(error){console.warn('In-page history unavailable:',error)}
+  }
   if(viewerHistory.length<=1){closeViewer();return}
   viewerHistory.pop();showInViewer(viewerHistory.at(-1),false);
+});
+viewerFrame.addEventListener('load',()=>{
+  if(!viewerUsesProxy||viewer.hidden)return;
+  try{
+    const frameUrl=new URL(viewerFrame.contentWindow.location.href);
+    if(frameUrl.pathname.startsWith(window.__uv$config.prefix)){
+      const actual=window.__uv$config.decodeUrl(frameUrl.pathname.slice(window.__uv$config.prefix.length));
+      if(/^https?:\/\//i.test(actual)){currentViewerUrl=actual;viewerUrl.textContent=actual}
+    }
+  }catch{/* Cross-origin navigation details are not readable; browsing remains available. */}
 });
 viewerExternal.addEventListener('click',()=>{if(currentViewerUrl)window.open(currentViewerUrl,'_blank','noopener,noreferrer')});
 document.querySelectorAll('[data-panel]').forEach(button=>button.addEventListener('click',()=>document.querySelector(`#${button.dataset.panel}`)?.showModal()));
