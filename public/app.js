@@ -192,3 +192,16 @@ function clearLocalData(){
 document.querySelector('#clear-data').addEventListener('click',clearLocalData);
 document.querySelector('#settings-clear-data').addEventListener('click',clearLocalData);
 renderLinks();
+
+const localTimeElement=document.querySelector('#local-time');
+const localDateElement=document.querySelector('#local-date');
+function updateLocalClock(){
+  const now=new Date();
+  // The browser supplies its own locale and IANA time zone automatically.
+  localTimeElement.textContent=new Intl.DateTimeFormat(undefined,{hour:'numeric',minute:'2-digit'}).format(now);
+  localDateElement.textContent=new Intl.DateTimeFormat(undefined,{weekday:'long',month:'long',day:'numeric'}).format(now);
+  localTimeElement.dateTime=now.toISOString();
+}
+updateLocalClock();
+setInterval(updateLocalClock,15000);
+document.addEventListener('visibilitychange',()=>{if(!document.hidden)updateLocalClock()});
