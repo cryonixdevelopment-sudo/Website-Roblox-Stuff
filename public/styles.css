@@ -31,7 +31,10 @@ h1 span { display:inline-block; animation:pop-in .48s cubic-bezier(.2,.9,.25,1.2
 .trending:hover { color:var(--text); border-color:#3b304c; }
 .utility-dock { position:fixed; right:24px; bottom:17px; display:flex; align-items:center; gap:4px; }
 .utility-dock button { display:flex; align-items:center; gap:6px; padding:7px 8px; border:0; border-radius:8px; background:transparent; color:#8d8993; cursor:pointer; font-size:.72rem; }
+.dock-icon { width:17px; height:17px; object-fit:contain; image-rendering:pixelated; opacity:.78; }
+.dock-icon { width:17px; height:17px; object-fit:contain; image-rendering:pixelated; opacity:.8; }
 .utility-dock button:hover { background:#121217; color:#d7d4dc; }
+.utility-dock button:hover .dock-icon { opacity:1; }
 .utility-dock .danger { color:var(--danger); }
 .viewer { position:fixed; inset:0; z-index:20; display:grid; grid-template-rows:58px auto 1fr; background:#08080b; }
 .viewer[hidden] { display:none; }
