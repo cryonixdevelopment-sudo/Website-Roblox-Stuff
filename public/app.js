@@ -183,13 +183,13 @@ document.documentElement.classList.toggle('trail-disabled',!trailSetting.checked
 document.documentElement.style.setProperty('--background-opacity',String(Number(backgroundSetting.value)/100));
 searchEngine.addEventListener('change',()=>localStorage.setItem(storageKeys.engine,searchEngine.value));
 newTabSetting.addEventListener('change',()=>localStorage.setItem(storageKeys.newTabs,String(newTabSetting.checked)));
-motionSetting.addEventListener('change',()=>{localStorage.setItem(storageKeys.reduceMotion,String(motionSetting.checked));document.documentElement.classList.toggle('reduce-motion',motionSetting.checked)});
+motionSetting.addEventListener('change',()=>{localStorage.setItem(storageKeys.reduceMotion,String(motionSetting.checked));document.documentElement.classList.toggle('reduce-motion',motionSetting.checked);syncSilverTrail()});
 themeSetting.addEventListener('change',()=>{localStorage.setItem(storageKeys.theme,themeSetting.value);document.documentElement.dataset.theme=themeSetting.value});
 backgroundSetting.addEventListener('input',()=>{localStorage.setItem(storageKeys.background,backgroundSetting.value);document.documentElement.style.setProperty('--background-opacity',String(Number(backgroundSetting.value)/100))});
 httpsSetting.addEventListener('change',()=>localStorage.setItem(storageKeys.preferHttps,String(httpsSetting.checked)));
 trackingSetting.addEventListener('change',()=>localStorage.setItem(storageKeys.stripTracking,String(trackingSetting.checked)));
 imagesSetting.addEventListener('change',()=>{localStorage.setItem(storageKeys.showImages,String(imagesSetting.checked));document.documentElement.classList.toggle('images-disabled',!imagesSetting.checked)});
-trailSetting.addEventListener('change',()=>{localStorage.setItem(storageKeys.showTrail,String(trailSetting.checked));document.documentElement.classList.toggle('trail-disabled',!trailSetting.checked)});
+trailSetting.addEventListener('change',()=>{localStorage.setItem(storageKeys.showTrail,String(trailSetting.checked));document.documentElement.classList.toggle('trail-disabled',!trailSetting.checked);syncSilverTrail()});
 document.querySelectorAll('.settings-tab').forEach(tab=>tab.addEventListener('click',()=>{document.querySelectorAll('.settings-tab').forEach(item=>item.classList.toggle('active',item===tab));document.querySelectorAll('.settings-panel').forEach(panel=>panel.classList.toggle('active',panel.dataset.settingsPanel===tab.dataset.settingsTab))}));
 displayName.value=localStorage.getItem(storageKeys.profile)||'';
 document.querySelector('#save-profile').addEventListener('click',()=>{localStorage.setItem(storageKeys.profile,displayName.value.trim());notify('Profile saved locally')});
@@ -256,44 +256,60 @@ if(!window.matchMedia('(prefers-reduced-motion: reduce)').matches)setInterval(ro
 
 
 // Smooth silver pointer trail
-if(window.matchMedia('(pointer:fine)').matches&&!window.matchMedia('(prefers-reduced-motion:reduce)').matches){
+let silverTrailController=null;
+function stopSilverTrail(){
+  if(!silverTrailController)return;
+  cancelAnimationFrame(silverTrailController.animationFrame);
+  removeEventListener('pointermove',silverTrailController.onPointerMove);
+  removeEventListener('resize',silverTrailController.onResize);
+  silverTrailController.canvas.remove();
+  silverTrailController=null;
+}
+function startSilverTrail(){
+  if(silverTrailController||!window.matchMedia('(pointer:fine)').matches||window.matchMedia('(prefers-reduced-motion:reduce)').matches)return;
   const canvas=document.createElement('canvas');
   canvas.id='silver-trail-canvas';
   document.body.appendChild(canvas);
   const context=canvas.getContext('2d');
   const points=[];
-  const resizeTrail=()=>{
-    const ratio=Math.min(window.devicePixelRatio||1,2);
+  const controller={canvas,context,points,animationFrame:0,onPointerMove:null,onResize:null};
+  silverTrailController=controller;
+  controller.onResize=()=>{
+    const ratio=Math.min(window.devicePixelRatio||1,1.5);
     canvas.width=Math.round(innerWidth*ratio);
     canvas.height=Math.round(innerHeight*ratio);
     context.setTransform(ratio,0,0,ratio,0,0);
   };
-  resizeTrail();
-  addEventListener('resize',resizeTrail,{passive:true});
-  addEventListener('pointermove',event=>{points.push({x:event.clientX,y:event.clientY,life:1});if(points.length>34)points.shift()},{passive:true});
-  const drawTrail=()=>{
-    context.clearRect(0,0,innerWidth,innerHeight);
-    if(points.length>1){
-      for(let index=1;index<points.length;index++){
-        const previous=points[index-1],point=points[index];
-        const gradient=context.createLinearGradient(previous.x,previous.y,point.x,point.y);
-        gradient.addColorStop(0,`rgba(130,135,148,${previous.life*.08})`);
-        gradient.addColorStop(.55,`rgba(224,227,235,${point.life*.62})`);
-        gradient.addColorStop(1,`rgba(255,255,255,${point.life*.82})`);
-        context.beginPath();
-        context.moveTo(previous.x,previous.y);
-        context.lineTo(point.x,point.y);
-        context.lineCap='round';
-        context.lineWidth=1.2+point.life*3.4;
-        context.strokeStyle=gradient;
-        context.shadowColor='rgba(218,222,232,.55)';
-        context.shadowBlur=8;
-        context.stroke();
-      }
-    }
-    points.forEach(point=>{point.life-=.035});
-    while(points[0]&&points[0].life<=0)points.shift();
-    requestAnimationFrame(drawTrail);
+  controller.onPointerMove=event=>{
+    points.push({x:event.clientX,y:event.clientY,life:1});
+    if(points.length>22)points.shift();
   };
-  requestAnimationFrame(drawTrail);
+  controller.onResize();
+  addEventListener('resize',controller.onResize,{passive:true});
+  addEventListener('pointermove',controller.onPointerMove,{passive:true});
+  const draw=()=>{
+    if(silverTrailController!==controller)return;
+    context.clearRect(0,0,innerWidth,innerHeight);
+    context.shadowBlur=0;
+    for(let index=1;index<points.length;index++){
+      const previous=points[index-1],point=points[index];
+      context.beginPath();
+      context.moveTo(previous.x,previous.y);
+      context.lineTo(point.x,point.y);
+      context.lineCap='round';
+      context.lineWidth=.8+point.life*2.6;
+      context.strokeStyle=`rgba(222,225,233,${point.life*.5})`;
+      context.stroke();
+    }
+    points.forEach(point=>{point.life-=.055});
+    while(points[0]&&points[0].life<=0)points.shift();
+    controller.animationFrame=requestAnimationFrame(draw);
+  };
+  controller.animationFrame=requestAnimationFrame(draw);
 }
+function syncSilverTrail(){
+  const enabled=trailSetting.checked&&!motionSetting.checked;
+  document.documentElement.classList.toggle('trail-disabled',!enabled);
+  if(enabled)startSilverTrail();else stopSilverTrail();
+}
+syncSilverTrail();
