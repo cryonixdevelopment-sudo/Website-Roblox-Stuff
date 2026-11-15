@@ -4,6 +4,8 @@ A dark-themed web proxy optimized for Windows PCs and Chromebooks. macOS and mob
 
 This project does **not** include monitoring evasion, traffic disguising, or school-filter bypass features. Follow the rules of the network and websites you use.
 
+For platform comparisons, health checks, environment-variable guidance, and phone-friendly deployment steps, see [DEPLOYMENT.md](DEPLOYMENT.md).
+
 ## Deploy from an iPhone with Railway
 
 No terminal or local computer is required.
@@ -28,6 +30,8 @@ The included `Dockerfile` provides a portable fallback:
 5. Deploy and enable a public HTTPS domain.
 
 The host must support WebSockets. Static hosts such as GitHub Pages and serverless-only platforms such as Vercel are not suitable for the Bare proxy backend.
+
+Northflank is the recommended browser-based fallback because its Sandbox currently advertises two free services with no card required. Deploy the included `Dockerfile` and follow [DEPLOYMENT.md](DEPLOYMENT.md).
 
 ## Updates
 
