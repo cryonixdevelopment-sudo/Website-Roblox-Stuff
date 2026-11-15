@@ -1,10 +1,10 @@
 # Orvian
 
-The current public frontend is a static personal start page inspired by compact desktop browser dashboards. It provides direct web search, app shortcuts, local bookmarks, preferences, a local-only profile, and an in-page iframe viewer. It does not proxy or relay browser traffic. Websites can independently refuse iframe embedding through their security headers; Orvian provides an external-tab fallback for those sites.
+The current public frontend is a static personal start page inspired by compact desktop browser dashboards. It provides direct web search, app shortcuts, local bookmarks, preferences, a local-only profile, and an in-page iframe viewer. On a compatible Node.js host, Orvian uses Scramjet to load supported sites inside its built-in viewer. Static GitHub Pages does not provide the required transport backend.
 
 ## Free frontend hosting with GitHub Pages
 
-The included `.github/workflows/pages.yml` publishes the `public` directory.
+The included `.github/workflows/pages.yml` publishes a static frontend only. **Embedded Scramjet browsing cannot work on GitHub Pages**; use a Node.js host that supports WebSockets for in-page websites.
 
 1. Open this repository on GitHub.
 2. Tap **Settings** → **Pages**.
@@ -13,7 +13,7 @@ The included `.github/workflows/pages.yml` publishes the `public` directory.
 5. Tap **Run workflow** if it has not run automatically.
 6. After the deployment completes, GitHub shows the public Pages URL.
 
-A dark-themed web proxy optimized for Windows PCs and Chromebooks. macOS and mobile devices may work, but they are not officially supported. Orvian uses the open-source [Ultraviolet](https://github.com/titaniumnetwork-dev/Ultraviolet) web proxy with a [Bare server](https://github.com/tomphttp/bare-server-node) backend.
+A dark-themed web proxy optimized for Windows PCs and Chromebooks. macOS and mobile devices may work, but they are not officially supported. Orvian uses the open-source [Scramjet](https://github.com/MercuryWorkshop/scramjet) embedded browser with BareMux/libcurl transport and a Wisp WebSocket backend.
 
 This project does **not** include monitoring evasion, traffic disguising, or school-filter bypass features. Follow the rules of the network and websites you use.
 
@@ -42,7 +42,7 @@ The included `Dockerfile` provides a portable fallback:
 4. Set the listening port to `8080` if the host asks.
 5. Deploy and enable a public HTTPS domain.
 
-The host must support WebSockets. Static hosts such as GitHub Pages and serverless-only platforms such as Vercel are not suitable for the Bare proxy backend.
+The host must support WebSockets. Static hosts such as GitHub Pages are not suitable for Scramjet's Wisp backend.
 
 Back4app Containers is the recommended browser-based fallback. Its published free container plan supports GitHub deployments and custom Docker containers without requiring a credit card. Deploy the included `Dockerfile` and follow [DEPLOYMENT.md](DEPLOYMENT.md).
 
@@ -59,7 +59,7 @@ npm ci
 npm start
 ```
 
-HTTPS is required in production because the proxy relies on a service worker.
+HTTPS is required in production because Scramjet relies on a service worker and a secure Wisp WebSocket connection.
 
 ## License
 
