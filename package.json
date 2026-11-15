@@ -1,0 +1,19 @@
+{
+  "name": "cool-proxy",
+  "version": "1.0.0",
+  "private": true,
+  "description": "A small, self-hosted web proxy for authorized use.",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "check": "node --check server.js && node --check public/app.js && node --check public/sw.js"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "dependencies": {
+    "@titaniumnetwork-dev/ultraviolet": "3.2.10",
+    "@tomphttp/bare-server-node": "2.0.6",
+    "express": "4.21.2"
+  }
+}

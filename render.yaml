@@ -1,0 +1,16 @@
+services:
+  - type: web
+    name: cool-proxy
+    runtime: node
+    plan: free
+    buildCommand: npm ci
+    startCommand: npm start
+    healthCheckPath: /health
+    autoDeploy: true
+    envVars:
+      - key: NODE_VERSION
+        value: 20
+      - key: ACCESS_USERNAME
+        value: cool
+      - key: ACCESS_PASSWORD
+        sync: false
