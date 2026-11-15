@@ -476,3 +476,14 @@ addEventListener('keydown',activateAudioSystem,{once:true});
 musicPlayPause.addEventListener('click',setupAudioVisualizer);
 musicPrevious.addEventListener('click',setupAudioVisualizer);
 musicNext.addEventListener('click',setupAudioVisualizer);
+
+
+// Compatibility notice for platforms outside the primary support targets
+const compatibilityNotice=document.querySelector('#compatibility-notice');
+const compatibilityUA=navigator.userAgent||'';
+const compatibilityPlatform=navigator.userAgentData?.platform||navigator.platform||'';
+const isSupportedOrvianDevice=/Windows/i.test(compatibilityPlatform)||/Win32|Win64|Windows/i.test(compatibilityUA)||/CrOS/i.test(compatibilityUA);
+if(!isSupportedOrvianDevice&&compatibilityNotice){
+  compatibilityNotice.hidden=false;
+  window.setTimeout(()=>compatibilityNotice.remove(),6500);
+}
