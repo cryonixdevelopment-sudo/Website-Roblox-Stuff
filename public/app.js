@@ -319,9 +319,40 @@ function syncSilverTrail(){
 syncSilverTrail();
 
 
-// Ambient audio with autoplay fallback and volume fades
+// Playlist-ready ambient music player
+const ambientPlaylist=[
+  {title:'Kerosene',artist:'Crystal Castles',src:'/audio/ambient.mp3'}
+];
+const musicPlayer=document.querySelector('#music-player');
+const musicTitle=document.querySelector('#music-title');
+const musicArtist=document.querySelector('#music-artist');
+const musicPlayPause=document.querySelector('#music-play-pause');
+const musicPrevious=document.querySelector('#music-previous');
+const musicNext=document.querySelector('#music-next');
+const musicProgress=document.querySelector('#music-progress');
+const musicCurrentTime=document.querySelector('#music-current-time');
+const musicDuration=document.querySelector('#music-duration');
+let ambientTrackIndex=0;
 let ambientFadeFrame=0;
 let ambientUnlockBound=false;
+let ambientUserPaused=false;
+function formatMusicTime(seconds){
+  if(!Number.isFinite(seconds))return '0:00';
+  const minutes=Math.floor(seconds/60);
+  return `${minutes}:${String(Math.floor(seconds%60)).padStart(2,'0')}`;
+}
+function updateMusicPlayer(){
+  const track=ambientPlaylist[ambientTrackIndex];
+  musicTitle.textContent=track.title;
+  musicArtist.textContent=track.artist;
+  musicCurrentTime.textContent=formatMusicTime(ambientAudio.currentTime);
+  musicDuration.textContent=formatMusicTime(ambientAudio.duration);
+  musicProgress.value=ambientAudio.duration?String(ambientAudio.currentTime/ambientAudio.duration*100):'0';
+  const playing=!ambientAudio.paused&&!ambientAudio.ended;
+  musicPlayer.classList.toggle('playing',playing);
+  musicPlayPause.textContent=playing?'Ⅱ':'▶';
+  musicPlayPause.setAttribute('aria-label',playing?'Pause':'Play');
+}
 function fadeAmbientTo(target,duration,onComplete){
   cancelAnimationFrame(ambientFadeFrame);
   const startVolume=ambientAudio.volume;
@@ -334,9 +365,26 @@ function fadeAmbientTo(target,duration,onComplete){
   };
   ambientFadeFrame=requestAnimationFrame(step);
 }
+function playAmbientTrack({restart=false}={}){
+  const track=ambientPlaylist[ambientTrackIndex];
+  if(ambientAudio.getAttribute('src')!==track.src){
+    ambientAudio.src=track.src;
+    ambientAudio.load();
+  }
+  if(restart)ambientAudio.currentTime=0;
+  ambientUserPaused=false;
+  ambientAudio.volume=0;
+  ambientAudio.play().then(()=>{fadeAmbientTo(.42,1200);updateMusicPlayer()}).catch(bindAmbientUnlock);
+}
+function changeAmbientTrack(direction){
+  fadeAmbientTo(0,350,()=>{
+    ambientTrackIndex=(ambientTrackIndex+direction+ambientPlaylist.length)%ambientPlaylist.length;
+    playAmbientTrack({restart:true});
+  });
+}
 function unlockAmbientAudio(){
-  if(!musicSetting.checked)return;
-  ambientAudio.play().then(()=>fadeAmbientTo(.42,1800)).catch(()=>{});
+  if(!musicSetting.checked||ambientUserPaused)return;
+  playAmbientTrack();
 }
 function bindAmbientUnlock(){
   if(ambientUnlockBound)return;
@@ -351,17 +399,33 @@ function bindAmbientUnlock(){
   addEventListener('keydown',unlock,{once:true});
 }
 function syncAmbientAudio(){
+  document.documentElement.classList.toggle('music-disabled',!musicSetting.checked);
+  musicPlayer.classList.toggle('visible',musicSetting.checked);
   if(!musicSetting.checked){
-    fadeAmbientTo(0,900,()=>ambientAudio.pause());
+    fadeAmbientTo(0,700,()=>{ambientAudio.pause();updateMusicPlayer()});
     return;
   }
-  ambientAudio.loop=true;
-  ambientAudio.volume=0;
-  ambientAudio.play().then(()=>fadeAmbientTo(.42,1800)).catch(bindAmbientUnlock);
+  if(!ambientUserPaused)playAmbientTrack();
 }
+musicPlayPause.addEventListener('click',()=>{
+  if(ambientAudio.paused){ambientUserPaused=false;playAmbientTrack()}
+  else{ambientUserPaused=true;fadeAmbientTo(0,450,()=>{ambientAudio.pause();updateMusicPlayer()})}
+});
+musicPrevious.addEventListener('click',()=>changeAmbientTrack(-1));
+musicNext.addEventListener('click',()=>changeAmbientTrack(1));
+musicProgress.addEventListener('input',()=>{
+  if(ambientAudio.duration)ambientAudio.currentTime=Number(musicProgress.value)/100*ambientAudio.duration;
+  updateMusicPlayer();
+});
+ambientAudio.addEventListener('timeupdate',updateMusicPlayer);
+ambientAudio.addEventListener('loadedmetadata',updateMusicPlayer);
+ambientAudio.addEventListener('play',updateMusicPlayer);
+ambientAudio.addEventListener('pause',updateMusicPlayer);
+ambientAudio.addEventListener('ended',()=>changeAmbientTrack(1));
 document.addEventListener('visibilitychange',()=>{
   if(document.hidden)fadeAmbientTo(0,650,()=>ambientAudio.pause());
-  else if(musicSetting.checked)syncAmbientAudio();
+  else if(musicSetting.checked&&!ambientUserPaused)playAmbientTrack();
 });
 syncAmbientAudio();
+updateMusicPlayer();
 requestAnimationFrame(()=>requestAnimationFrame(()=>document.body.classList.add('page-ready')));
