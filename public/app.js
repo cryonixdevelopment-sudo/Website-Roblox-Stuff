@@ -648,6 +648,7 @@ function renderMembers(members){
       const wrap=document.createElement('span');wrap.className='member-avatar-wrap effect-'+member.effect;
       wrap.append(avatarElement(member));const dot=document.createElement('i');dot.className='member-status-dot '+member.status;wrap.append(dot);
       const info=document.createElement('span');const name=document.createElement('strong');name.textContent=member.displayName;
+      if(member.role==='owner'){name.classList.add('member-owner-name');card.classList.add('is-owner')}
       const detail=document.createElement('small');detail.textContent=member.role==='owner'?'Owner':member.status==='dnd'?'Do Not Disturb':member.status;
       info.append(name,detail);card.append(wrap,info);membersList.append(card);
     });
