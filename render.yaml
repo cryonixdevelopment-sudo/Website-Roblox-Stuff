@@ -10,7 +10,3 @@ services:
     envVars:
       - key: NODE_VERSION
         value: 20
-      - key: ACCESS_USERNAME
-        value: cool
-      - key: ACCESS_PASSWORD
-        sync: false

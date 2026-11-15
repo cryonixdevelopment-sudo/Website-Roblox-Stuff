@@ -12,11 +12,10 @@ No terminal or local computer is required.
 2. Open the [Render Blueprint page](https://dashboard.render.com/blueprints) and tap **New Blueprint Instance**.
 3. Connect GitHub when asked and select `cryonixdevelopment-sudo/Website-Roblox-Stuff`.
 4. Render detects `render.yaml`. Give the Blueprint any name and continue.
-5. When Render asks for `ACCESS_PASSWORD`, enter a strong password that only authorized users know. The username is `cool`.
-6. Tap **Deploy Blueprint** and wait for the service to show **Live**.
-7. Open the `onrender.com` address shown by Render. Your browser asks for the username and password before loading the proxy.
+5. Tap **Deploy Blueprint** and wait for the service to show **Live**.
+6. Open the public `onrender.com` address shown by Render.
 
-Free Render services can sleep when unused, so the first load may take around a minute. Keep the GitHub repository private and do not share the deployed URL or password publicly.
+Free Render services can sleep when unused, so the first load may take around a minute. The deployed URL is public and does not require a login.
 
 ## Updates
 
@@ -31,7 +30,7 @@ npm ci
 npm start
 ```
 
-Set `ACCESS_USERNAME` and `ACCESS_PASSWORD` in the host's environment settings. HTTPS is required in production because the proxy relies on a service worker.
+HTTPS is required in production because the proxy relies on a service worker.
 
 ## License
 
