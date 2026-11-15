@@ -429,3 +429,50 @@ document.addEventListener('visibilitychange',()=>{
 syncAmbientAudio();
 updateMusicPlayer();
 requestAnimationFrame(()=>requestAnimationFrame(()=>document.body.classList.add('page-ready')));
+
+
+// Real-time Web Audio spectrum analyzer
+let musicAudioContext=null;
+let musicAnalyser=null;
+let musicSourceNode=null;
+let musicFrequencyData=null;
+let musicVisualizerFrame=0;
+const musicMeterBars=[...document.querySelectorAll('#music-meter i')];
+async function setupAudioVisualizer(){
+  if(!musicAudioContext){
+    const AudioContextClass=window.AudioContext||window.webkitAudioContext;
+    if(!AudioContextClass)return;
+    musicAudioContext=new AudioContextClass();
+    musicAnalyser=musicAudioContext.createAnalyser();
+    musicAnalyser.fftSize=64;
+    musicAnalyser.smoothingTimeConstant=.76;
+    musicFrequencyData=new Uint8Array(musicAnalyser.frequencyBinCount);
+    musicSourceNode=musicAudioContext.createMediaElementSource(ambientAudio);
+    musicSourceNode.connect(musicAnalyser);
+    musicAnalyser.connect(musicAudioContext.destination);
+  }
+  if(musicAudioContext.state==='suspended')await musicAudioContext.resume().catch(()=>{});
+  if(!musicVisualizerFrame)drawAudioVisualizer();
+}
+function drawAudioVisualizer(){
+  musicVisualizerFrame=requestAnimationFrame(drawAudioVisualizer);
+  if(!musicAnalyser)return;
+  musicAnalyser.getByteFrequencyData(musicFrequencyData);
+  const usableBins=Math.min(24,musicFrequencyData.length);
+  musicMeterBars.forEach((bar,index)=>{
+    const start=Math.floor(index*usableBins/musicMeterBars.length);
+    const end=Math.max(start+1,Math.floor((index+1)*usableBins/musicMeterBars.length));
+    let total=0;
+    for(let bin=start;bin<end;bin++)total+=musicFrequencyData[bin];
+    const level=total/(end-start)/255;
+    const shaped=Math.pow(level,1.35);
+    bar.style.height=`${Math.max(8,shaped*100)}%`;
+    bar.style.opacity=String(.32+shaped*.68);
+  });
+}
+const activateAudioSystem=()=>setupAudioVisualizer();
+addEventListener('pointerdown',activateAudioSystem,{once:true,passive:true});
+addEventListener('keydown',activateAudioSystem,{once:true});
+musicPlayPause.addEventListener('click',setupAudioVisualizer);
+musicPrevious.addEventListener('click',setupAudioVisualizer);
+musicNext.addEventListener('click',setupAudioVisualizer);

@@ -649,3 +649,14 @@ html.music-disabled .music-transport { display:none; }
 @media (max-width:700px) {
   .music-transport { width:min(280px,calc(100vw - 28px)); bottom:66px; }
 }
+
+
+/* Real audio spectrum meter */
+.music-player.playing .music-meter i,
+.music-player.playing .music-meter i:nth-child(n) {
+  animation:none;
+  height:8%;
+  transition:height 70ms linear,opacity 90ms linear;
+  transform-origin:bottom;
+}
+.music-meter i { height:8%; opacity:.35; }
