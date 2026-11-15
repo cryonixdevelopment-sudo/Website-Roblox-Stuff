@@ -45,8 +45,10 @@ function ensureAuthSchema(){
       username_lower VARCHAR(24) NOT NULL UNIQUE,
       email VARCHAR(254),
       password_hash TEXT NOT NULL,
-      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      edited_at TIMESTAMPTZ
     );
+    ALTER TABLE orvian_chat_messages ADD COLUMN IF NOT EXISTS edited_at TIMESTAMPTZ;
     CREATE TABLE IF NOT EXISTS orvian_sessions (
       token_hash CHAR(64) PRIMARY KEY,
       user_id BIGINT NOT NULL REFERENCES orvian_users(id) ON DELETE CASCADE,
@@ -213,11 +215,11 @@ app.get('/api/chat/messages',requireAccount,async(req,res)=>{
   if(!chatChannels.has(channel))return res.status(400).json({error:'Unknown channel.'});
   try{
     const result=await authPool.query(`
-      SELECT m.id,m.body,m.created_at,u.username,u.role
+      SELECT m.id,m.user_id,m.body,m.created_at,m.edited_at,u.username,u.role
       FROM orvian_chat_messages m JOIN orvian_users u ON u.id=m.user_id
       WHERE m.channel=$1 ORDER BY m.created_at DESC LIMIT 100
     `,[channel]);
-    res.json({messages:result.rows.reverse().map(message=>({...message,id:String(message.id)}))});
+    res.json({messages:result.rows.reverse().map(message=>({...message,id:String(message.id),user_id:String(message.user_id),canModify:String(message.user_id)===String(req.authUser.id)}))});
   }catch(error){console.error('Chat fetch failed:',error.message);res.status(500).json({error:'Unable to load messages.'})}
 });
 app.post('/api/chat/messages',requireAccount,async(req,res)=>{
@@ -234,6 +236,31 @@ app.post('/api/chat/messages',requireAccount,async(req,res)=>{
     `,[channel,req.authUser.id,body]);
     res.status(201).json({message:{...result.rows[0],id:String(result.rows[0].id),username:req.authUser.username,role:req.authUser.role}});
   }catch(error){console.error('Chat post failed:',error.message);res.status(500).json({error:'Unable to send message.'})}
+});
+
+
+app.patch('/api/chat/messages/:id',requireAccount,async(req,res)=>{
+  const id=String(req.params.id||'');
+  const body=String(req.body?.body||'').trim();
+  if(!/^\d+$/.test(id))return res.status(400).json({error:'Invalid message.'});
+  if(!body||body.length>1000)return res.status(400).json({error:'Messages must be 1–1000 characters.'});
+  try{
+    const result=await authPool.query(`
+      UPDATE orvian_chat_messages SET body=$1,edited_at=NOW()
+      WHERE id=$2 AND user_id=$3 RETURNING id,body,created_at,edited_at
+    `,[body,id,req.authUser.id]);
+    if(!result.rowCount)return res.status(404).json({error:'Message not found or does not belong to you.'});
+    res.json({message:{...result.rows[0],id:String(result.rows[0].id)}});
+  }catch(error){console.error('Chat edit failed:',error.message);res.status(500).json({error:'Unable to edit message.'})}
+});
+app.delete('/api/chat/messages/:id',requireAccount,async(req,res)=>{
+  const id=String(req.params.id||'');
+  if(!/^\d+$/.test(id))return res.status(400).json({error:'Invalid message.'});
+  try{
+    const result=await authPool.query('DELETE FROM orvian_chat_messages WHERE id=$1 AND user_id=$2 RETURNING id',[id,req.authUser.id]);
+    if(!result.rowCount)return res.status(404).json({error:'Message not found or does not belong to you.'});
+    res.status(204).end();
+  }catch(error){console.error('Chat delete failed:',error.message);res.status(500).json({error:'Unable to delete message.'})}
 });
 
 
