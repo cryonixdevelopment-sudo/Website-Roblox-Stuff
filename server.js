@@ -26,6 +26,17 @@ app.use('/scram/',express.static(scramjetPath));
 app.use('/libcurl/',express.static(libcurlPath));
 app.use('/baremux/',express.static(baremuxPath));
 app.use(express.static(path.join(directory,'public')));
+// Do not return Orvian's homepage for an unhandled proxy navigation.
+// Doing so nests Orvian inside its own viewer instead of showing an error.
+app.use((req,res,next)=>{
+  if(req.path.startsWith('/scramjet/')||req.path.startsWith('/service/')||
+     req.path.startsWith('/~/')||req.path.startsWith('/scram/')||
+     req.path.startsWith('/baremux/')||req.path.startsWith('/libcurl/')||
+     req.path.startsWith('/wisp/')){
+    return res.status(404).type('text/plain').send('Embedded browser route was not handled by Scramjet. Reload Orvian and try again.');
+  }
+  next();
+});
 app.get('*',(_req,res,next)=>{
   res.sendFile(path.join(directory,'public/index.html'),error=>{if(error)next(error)});
 });
