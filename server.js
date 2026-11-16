@@ -66,6 +66,10 @@ function ensureAuthSchema(){
     ALTER TABLE orvian_users ADD COLUMN IF NOT EXISTS presence_status VARCHAR(16) NOT NULL DEFAULT 'online';
     ALTER TABLE orvian_users ADD COLUMN IF NOT EXISTS profile_effect VARCHAR(16) NOT NULL DEFAULT 'none';
     ALTER TABLE orvian_users ADD COLUMN IF NOT EXISTS last_seen TIMESTAMPTZ;
+    ALTER TABLE orvian_users ADD COLUMN IF NOT EXISTS chat_banned_permanent BOOLEAN NOT NULL DEFAULT FALSE;
+    ALTER TABLE orvian_users ADD COLUMN IF NOT EXISTS chat_banned_until TIMESTAMPTZ;
+    ALTER TABLE orvian_users ADD COLUMN IF NOT EXISTS chat_muted_until TIMESTAMPTZ;
+    ALTER TABLE orvian_users ADD COLUMN IF NOT EXISTS moderation_reason VARCHAR(240);
     UPDATE orvian_users SET role='owner'
       WHERE id=(SELECT id FROM orvian_users ORDER BY created_at ASC,id ASC LIMIT 1)
       AND NOT EXISTS(SELECT 1 FROM orvian_users WHERE role='owner');
@@ -93,6 +97,14 @@ function ensureAuthSchema(){
       edited_at TIMESTAMPTZ
     );
     CREATE INDEX IF NOT EXISTS orvian_dm_pair_idx ON orvian_direct_messages(sender_id,recipient_id,created_at DESC);
+    CREATE TABLE IF NOT EXISTS orvian_moderation_log (
+      id BIGSERIAL PRIMARY KEY,
+      moderator_id BIGINT NOT NULL REFERENCES orvian_users(id) ON DELETE CASCADE,
+      target_id BIGINT REFERENCES orvian_users(id) ON DELETE SET NULL,
+      action VARCHAR(32) NOT NULL,
+      details VARCHAR(300),
+      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    );
   `).catch(error=>{authSchemaPromise=null;throw error});
   return authSchemaPromise;
 }
@@ -121,7 +133,7 @@ async function currentAuthUser(req){
   if(!token)return null;
   await ensureAuthSchema();
   const result=await authPool.query(`
-    SELECT u.id,u.username,u.email,u.role,u.display_name,u.bio,u.avatar_data,u.banner_data,u.presence_status,u.profile_effect FROM orvian_sessions s
+    SELECT u.id,u.username,u.email,u.role,u.display_name,u.bio,u.avatar_data,u.banner_data,u.presence_status,u.profile_effect,u.chat_banned_permanent,u.chat_banned_until,u.chat_muted_until FROM orvian_sessions s
     JOIN orvian_users u ON u.id=s.user_id
     WHERE s.token_hash=$1 AND s.expires_at>NOW()
   `,[tokenHash(token)]);
@@ -180,6 +192,8 @@ async function requireAccount(req,res,next){
   try{
     const user=await currentAuthUser(req);
     if(!user)return res.status(401).json({error:'Sign in to use Chat.'});
+    if(user.role!=='owner'&&(user.chat_banned_permanent||(user.chat_banned_until&&new Date(user.chat_banned_until)>new Date())))
+      return res.status(403).json({error:user.chat_banned_permanent?'You are banned from Orvian Chat.':'You are temporarily banned from Orvian Chat.'});
     req.authUser=user;next();
   }catch(error){console.error('Account check failed:',error.message);res.status(503).json({error:'Chat is temporarily unavailable.'})}
 }
@@ -214,7 +228,7 @@ app.patch('/api/account/profile',requireAccount,async(req,res)=>{
 app.get('/api/chat/members',requireAccount,async(req,res)=>{
   try{
     const result=await authPool.query(`
-      SELECT id,username,role,display_name,bio,avatar_data,banner_data,presence_status,profile_effect,last_seen,
+      SELECT id,username,role,display_name,bio,avatar_data,banner_data,presence_status,profile_effect,last_seen,chat_banned_permanent,chat_banned_until,chat_muted_until,moderation_reason,
         EXISTS(SELECT 1 FROM orvian_blocks b WHERE b.blocker_id=$1 AND b.blocked_id=orvian_users.id) AS blocked,
         CASE
           WHEN presence_status='invisible' THEN 'offline'
@@ -229,10 +243,61 @@ app.get('/api/chat/members',requireAccount,async(req,res)=>{
     res.json({members:result.rows.map(member=>({
       id:String(member.id),username:member.username,displayName:member.display_name||member.username,
       role:member.role,bio:member.bio||'',avatar:member.avatar_data||null,banner:member.banner_data||null,
-      status:member.effective_status,effect:member.profile_effect||'none',blocked:Boolean(member.blocked)
+      status:member.effective_status,effect:member.profile_effect||'none',blocked:Boolean(member.blocked),moderation:{banned:Boolean(member.chat_banned_permanent)||(member.chat_banned_until&&new Date(member.chat_banned_until)>new Date()),permanent:Boolean(member.chat_banned_permanent),bannedUntil:member.chat_banned_until||null,mutedUntil:member.chat_muted_until||null,reason:member.moderation_reason||''}
     }))});
   }catch(error){console.error('Members fetch failed:',error.message);res.status(500).json({error:'Unable to load members.'})}
 });
+function moderationDuration(value){
+  const match=String(value||'').trim().match(/^(\d+)(m|h|d|w)$/i);
+  if(!match)return null;const amount=Number(match[1]);const units={m:60000,h:3600000,d:86400000,w:604800000};
+  const milliseconds=amount*units[match[2].toLowerCase()];
+  return amount>0&&milliseconds<=90*86400000?milliseconds:null;
+}
+async function moderationTarget(username){
+  const result=await authPool.query('SELECT id,username,role FROM orvian_users WHERE username_lower=$1',[String(username||'').toLowerCase()]);
+  return result.rows[0]||null;
+}
+app.post('/api/chat/command',requireAccount,async(req,res)=>{
+  if(req.authUser.role!=='owner')return res.status(403).json({error:'Only the Owner can use moderation commands.'});
+  const input=String(req.body?.command||'').trim();const channel=String(req.body?.channel||'general');
+  const parts=input.split(/\s+/);const command=(parts.shift()||'').toLowerCase();
+  const log=async(target,action,details)=>authPool.query('INSERT INTO orvian_moderation_log(moderator_id,target_id,action,details) VALUES($1,$2,$3,$4)',[req.authUser.id,target?.id||null,action,String(details||'').slice(0,300)]);
+  try{
+    if(command==='/help')return res.json({message:'Commands: /ban @user [reason], /tempban @user 10m|2h|3d [reason], /mute @user 10m|2h|3d [reason], /unban @user, /unmute @user, /clear [1-100].'});
+    if(command==='/clear'){
+      if(!chatChannels.has(channel))return res.status(400).json({error:'Open a public channel before clearing messages.'});
+      const count=Math.min(100,Math.max(1,Number(parts[0]||25)||25));
+      const deleted=await authPool.query('DELETE FROM orvian_chat_messages WHERE id IN (SELECT id FROM orvian_chat_messages WHERE channel=$1 ORDER BY created_at DESC LIMIT $2) RETURNING id',[channel,count]);
+      await log(null,'clear',channel+': '+deleted.rowCount+' messages');return res.json({message:'Cleared '+deleted.rowCount+' messages from #'+channel+'.'});
+    }
+    const username=String(parts.shift()||'').replace(/^@/,'');const target=await moderationTarget(username);
+    if(!target)return res.status(404).json({error:'Member not found. Use their exact username.'});
+    if(target.role==='owner'||String(target.id)===String(req.authUser.id))return res.status(400).json({error:'The Owner cannot be moderated.'});
+    if(command==='/ban'){
+      const reason=parts.join(' ')||'No reason provided';
+      await authPool.query('UPDATE orvian_users SET chat_banned_permanent=TRUE,chat_banned_until=NULL,moderation_reason=$1 WHERE id=$2',[reason,target.id]);
+      await log(target,'ban',reason);return res.json({message:'Banned @'+target.username+'.'});
+    }
+    if(command==='/tempban'||command==='/mute'){
+      const durationText=parts.shift();const duration=moderationDuration(durationText);
+      if(!duration)return res.status(400).json({error:'Use a duration such as 10m, 2h, 3d, or 1w (maximum 90 days).'});
+      const reason=parts.join(' ')||'No reason provided';const until=new Date(Date.now()+duration);
+      if(command==='/tempban')await authPool.query('UPDATE orvian_users SET chat_banned_permanent=FALSE,chat_banned_until=$1,moderation_reason=$2 WHERE id=$3',[until,reason,target.id]);
+      else await authPool.query('UPDATE orvian_users SET chat_muted_until=$1,moderation_reason=$2 WHERE id=$3',[until,reason,target.id]);
+      await log(target,command.slice(1),durationText+' '+reason);return res.json({message:(command==='/mute'?'Muted ':'Temporarily banned ')+'@'+target.username+' until '+until.toLocaleString()+'.'});
+    }
+    if(command==='/unban'){
+      await authPool.query('UPDATE orvian_users SET chat_banned_permanent=FALSE,chat_banned_until=NULL,moderation_reason=NULL WHERE id=$1',[target.id]);
+      await log(target,'unban','');return res.json({message:'Unbanned @'+target.username+'.'});
+    }
+    if(command==='/unmute'){
+      await authPool.query('UPDATE orvian_users SET chat_muted_until=NULL,moderation_reason=NULL WHERE id=$1',[target.id]);
+      await log(target,'unmute','');return res.json({message:'Unmuted @'+target.username+'.'});
+    }
+    return res.status(400).json({error:'Unknown command. Type /help to see available commands.'});
+  }catch(error){console.error('Moderation command failed:',error.message);return res.status(500).json({error:'Unable to run that moderation command.'})}
+});
+
 app.put('/api/chat/members/:id/block',requireAccount,async(req,res)=>{
   const target=String(req.params.id||'');
   const blocked=Boolean(req.body?.blocked);
@@ -268,6 +333,9 @@ app.post('/api/chat/dm/:id',requireAccount,async(req,res)=>{
   if(!/^\d+$/.test(other)||other===String(req.authUser.id))return res.status(400).json({error:'Invalid member.'});
   if(!body||body.length>1000)return res.status(400).json({error:'Messages must be 1–1000 characters.'});
   try{
+
+    if(req.authUser.role!=='owner'&&req.authUser.chat_muted_until&&new Date(req.authUser.chat_muted_until)>new Date())
+      return res.status(403).json({error:'You are currently muted.'});
     if(!await dmAllowed(req.authUser.id,other))return res.status(403).json({error:'Direct messages are unavailable because one of you blocked the other.'});
     const target=await authPool.query('SELECT 1 FROM orvian_users WHERE id=$1',[other]);if(!target.rowCount)return res.status(404).json({error:'Member not found.'});
     const result=await authPool.query('INSERT INTO orvian_direct_messages(sender_id,recipient_id,body) VALUES($1,$2,$3) RETURNING id,body,created_at',[req.authUser.id,other,body]);
@@ -305,6 +373,8 @@ app.post('/api/chat/messages',requireAccount,async(req,res)=>{
   if((channel==='announcements'||channel==='rules')&&req.authUser.role!=='owner')
     return res.status(403).json({error:'Only the Owner can post in this channel.'});
   try{
+    if(req.authUser.role!=='owner'&&req.authUser.chat_muted_until&&new Date(req.authUser.chat_muted_until)>new Date())
+      return res.status(403).json({error:'You are muted until '+new Date(req.authUser.chat_muted_until).toLocaleString()+'.'});
     const result=await authPool.query(`
       INSERT INTO orvian_chat_messages(channel,user_id,body,attachment_data,attachment_url) VALUES($1,$2,$3,$4,$5)
       RETURNING id,body,attachment_data,attachment_url,created_at
