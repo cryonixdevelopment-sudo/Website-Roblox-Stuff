@@ -77,6 +77,22 @@ function ensureAuthSchema(){
       created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
     );
     CREATE INDEX IF NOT EXISTS orvian_chat_channel_idx ON orvian_chat_messages(channel,created_at DESC);
+    CREATE TABLE IF NOT EXISTS orvian_blocks (
+      blocker_id BIGINT NOT NULL REFERENCES orvian_users(id) ON DELETE CASCADE,
+      blocked_id BIGINT NOT NULL REFERENCES orvian_users(id) ON DELETE CASCADE,
+      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      PRIMARY KEY(blocker_id,blocked_id),
+      CHECK(blocker_id<>blocked_id)
+    );
+    CREATE TABLE IF NOT EXISTS orvian_direct_messages (
+      id BIGSERIAL PRIMARY KEY,
+      sender_id BIGINT NOT NULL REFERENCES orvian_users(id) ON DELETE CASCADE,
+      recipient_id BIGINT NOT NULL REFERENCES orvian_users(id) ON DELETE CASCADE,
+      body VARCHAR(1000) NOT NULL,
+      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      edited_at TIMESTAMPTZ
+    );
+    CREATE INDEX IF NOT EXISTS orvian_dm_pair_idx ON orvian_direct_messages(sender_id,recipient_id,created_at DESC);
   `).catch(error=>{authSchemaPromise=null;throw error});
   return authSchemaPromise;
 }
@@ -195,10 +211,11 @@ app.patch('/api/account/profile',requireAccount,async(req,res)=>{
     res.json({user:publicUser(result.rows[0])});
   }catch(error){console.error('Profile update failed:',error.message);res.status(500).json({error:'Unable to save profile.'})}
 });
-app.get('/api/chat/members',requireAccount,async(_req,res)=>{
+app.get('/api/chat/members',requireAccount,async(req,res)=>{
   try{
     const result=await authPool.query(`
       SELECT id,username,role,display_name,bio,avatar_data,banner_data,presence_status,profile_effect,last_seen,
+        EXISTS(SELECT 1 FROM orvian_blocks b WHERE b.blocker_id=$1 AND b.blocked_id=orvian_users.id) AS blocked,
         CASE
           WHEN presence_status='invisible' THEN 'offline'
           WHEN last_seen>NOW()-INTERVAL '2 minutes' THEN presence_status
@@ -208,14 +225,56 @@ app.get('/api/chat/members',requireAccount,async(_req,res)=>{
         CASE WHEN role='owner' THEN 0 ELSE 1 END,
         CASE WHEN last_seen>NOW()-INTERVAL '2 minutes' AND presence_status<>'invisible' THEN 0 ELSE 1 END,
         COALESCE(display_name,username)
-    `);
+    `,[req.authUser.id]);
     res.json({members:result.rows.map(member=>({
       id:String(member.id),username:member.username,displayName:member.display_name||member.username,
       role:member.role,bio:member.bio||'',avatar:member.avatar_data||null,banner:member.banner_data||null,
-      status:member.effective_status,effect:member.profile_effect||'none'
+      status:member.effective_status,effect:member.profile_effect||'none',blocked:Boolean(member.blocked)
     }))});
   }catch(error){console.error('Members fetch failed:',error.message);res.status(500).json({error:'Unable to load members.'})}
 });
+app.put('/api/chat/members/:id/block',requireAccount,async(req,res)=>{
+  const target=String(req.params.id||'');
+  const blocked=Boolean(req.body?.blocked);
+  if(!/^\d+$/.test(target)||target===String(req.authUser.id))return res.status(400).json({error:'Invalid member.'});
+  try{
+    const exists=await authPool.query('SELECT 1 FROM orvian_users WHERE id=$1',[target]);
+    if(!exists.rowCount)return res.status(404).json({error:'Member not found.'});
+    if(blocked)await authPool.query('INSERT INTO orvian_blocks(blocker_id,blocked_id) VALUES($1,$2) ON CONFLICT DO NOTHING',[req.authUser.id,target]);
+    else await authPool.query('DELETE FROM orvian_blocks WHERE blocker_id=$1 AND blocked_id=$2',[req.authUser.id,target]);
+    res.json({blocked});
+  }catch(error){console.error('Block update failed:',error.message);res.status(500).json({error:'Unable to update block.'})}
+});
+async function dmAllowed(userId,otherId){
+  const result=await authPool.query('SELECT 1 FROM orvian_blocks WHERE (blocker_id=$1 AND blocked_id=$2) OR (blocker_id=$2 AND blocked_id=$1) LIMIT 1',[userId,otherId]);
+  return !result.rowCount;
+}
+app.get('/api/chat/dm/:id',requireAccount,async(req,res)=>{
+  const other=String(req.params.id||'');
+  if(!/^\d+$/.test(other)||other===String(req.authUser.id))return res.status(400).json({error:'Invalid member.'});
+  try{
+    if(!await dmAllowed(req.authUser.id,other))return res.status(403).json({error:'Direct messages are unavailable because one of you blocked the other.'});
+    const result=await authPool.query(`
+      SELECT d.id,d.sender_id,d.recipient_id,d.body,d.created_at,d.edited_at,u.username,u.role
+      FROM orvian_direct_messages d JOIN orvian_users u ON u.id=d.sender_id
+      WHERE (d.sender_id=$1 AND d.recipient_id=$2) OR (d.sender_id=$2 AND d.recipient_id=$1)
+      ORDER BY d.created_at DESC LIMIT 100
+    `,[req.authUser.id,other]);
+    res.json({messages:result.rows.reverse().map(message=>({...message,id:String(message.id),sender_id:String(message.sender_id),recipient_id:String(message.recipient_id),canModify:String(message.sender_id)===String(req.authUser.id)}))});
+  }catch(error){console.error('DM fetch failed:',error.message);res.status(500).json({error:'Unable to load direct messages.'})}
+});
+app.post('/api/chat/dm/:id',requireAccount,async(req,res)=>{
+  const other=String(req.params.id||'');const body=String(req.body?.body||'').trim();
+  if(!/^\d+$/.test(other)||other===String(req.authUser.id))return res.status(400).json({error:'Invalid member.'});
+  if(!body||body.length>1000)return res.status(400).json({error:'Messages must be 1–1000 characters.'});
+  try{
+    if(!await dmAllowed(req.authUser.id,other))return res.status(403).json({error:'Direct messages are unavailable because one of you blocked the other.'});
+    const target=await authPool.query('SELECT 1 FROM orvian_users WHERE id=$1',[other]);if(!target.rowCount)return res.status(404).json({error:'Member not found.'});
+    const result=await authPool.query('INSERT INTO orvian_direct_messages(sender_id,recipient_id,body) VALUES($1,$2,$3) RETURNING id,body,created_at',[req.authUser.id,other,body]);
+    res.status(201).json({message:{...result.rows[0],id:String(result.rows[0].id),username:req.authUser.username,role:req.authUser.role}});
+  }catch(error){console.error('DM send failed:',error.message);res.status(500).json({error:'Unable to send direct message.'})}
+});
+
 app.get('/api/chat/messages',requireAccount,async(req,res)=>{
   const channel=String(req.query.channel||'general');
   if(!chatChannels.has(channel))return res.status(400).json({error:'Unknown channel.'});
@@ -223,8 +282,14 @@ app.get('/api/chat/messages',requireAccount,async(req,res)=>{
     const result=await authPool.query(`
       SELECT m.id,m.user_id,m.body,m.created_at,m.edited_at,m.attachment_data,m.attachment_url,u.username,u.role
       FROM orvian_chat_messages m JOIN orvian_users u ON u.id=m.user_id
-      WHERE m.channel=$1 ORDER BY m.created_at DESC LIMIT 100
-    `,[channel]);
+      WHERE m.channel=$1
+        AND NOT EXISTS(
+          SELECT 1 FROM orvian_blocks b
+          WHERE (b.blocker_id=$2 AND b.blocked_id=m.user_id)
+             OR (b.blocker_id=m.user_id AND b.blocked_id=$2)
+        )
+      ORDER BY m.created_at DESC LIMIT 100
+    `,[channel,req.authUser.id]);
     res.json({messages:result.rows.reverse().map(message=>({...message,id:String(message.id),user_id:String(message.user_id),canModify:String(message.user_id)===String(req.authUser.id)}))});
   }catch(error){console.error('Chat fetch failed:',error.message);res.status(500).json({error:'Unable to load messages.'})}
 });
