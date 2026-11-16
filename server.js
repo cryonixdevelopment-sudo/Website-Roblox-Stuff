@@ -278,19 +278,23 @@ const gameIconSources=new Map([["lichess","https://lichess1.org/assets/logo/lich
 app.get('/api/game-icon/:key',async(req,res)=>{
   const source=gameIconSources.get(String(req.params.key||''));
   if(!source)return res.status(404).end();
-  try{
-    const upstream=await fetch(source,{redirect:'follow',headers:{'User-Agent':'Mozilla/5.0 Orvian/1.0','Accept':'image/avif,image/webp,image/png,image/svg+xml,image/*;q=0.8,*/*;q=0.5'},signal:AbortSignal.timeout(8000)});
-    if(!upstream.ok)throw new Error('Icon source returned '+upstream.status);
-    const type=String(upstream.headers.get('content-type')||'').split(';')[0];
-    if(!type.startsWith('image/'))throw new Error('Icon source did not return an image');
-    const bytes=Buffer.from(await upstream.arrayBuffer());
-    if(!bytes.length||bytes.length>524288)throw new Error('Icon response was empty or too large');
-    res.setHeader('Content-Type',type);res.setHeader('Cache-Control','public,max-age=86400,stale-while-revalidate=604800');
-    return res.send(bytes);
-  }catch(error){
-    console.warn('Game icon failed:',req.params.key,error.message);
-    return res.status(404).end();
+  const domain=new URL(source).hostname.replace(/^www\./,'');
+  const candidates=[source,`https://www.google.com/s2/favicons?domain=${encodeURIComponent(domain)}&sz=128`];
+  let lastError='No icon source responded';
+  for(const candidate of candidates){
+    try{
+      const upstream=await fetch(candidate,{redirect:'follow',headers:{'User-Agent':'Mozilla/5.0 Orvian/1.0','Accept':'image/avif,image/webp,image/png,image/svg+xml,image/*;q=0.8,*/*;q=0.5'},signal:AbortSignal.timeout(8000)});
+      if(!upstream.ok)throw new Error('Icon source returned '+upstream.status);
+      const type=String(upstream.headers.get('content-type')||'').split(';')[0];
+      if(!type.startsWith('image/'))throw new Error('Icon source did not return an image');
+      const bytes=Buffer.from(await upstream.arrayBuffer());
+      if(!bytes.length||bytes.length>524288)throw new Error('Icon response was empty or too large');
+      res.setHeader('Content-Type',type);res.setHeader('Cache-Control','public,max-age=86400,stale-while-revalidate=604800');
+      return res.send(bytes);
+    }catch(error){lastError=error.message}
   }
+  console.warn('Game icon failed:',req.params.key,lastError);
+  return res.status(404).end();
 });
 
 app.get('/health',(_req,res)=>{
