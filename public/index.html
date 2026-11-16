@@ -223,7 +223,7 @@
         <nav aria-label="Settings sections">
           <button class="settings-tab active" type="button" data-settings-tab="general">General</button>
           <button class="settings-tab" type="button" data-settings-tab="appearance">Appearance</button>
-          <button class="settings-tab" type="button" data-settings-tab="privacy">Privacy</button>
+          <button class="settings-tab" type="button" data-settings-tab="chat">Chat</button><button class="settings-tab" type="button" data-settings-tab="play">Play</button><button class="settings-tab" type="button" data-settings-tab="accessibility">Accessibility</button><button class="settings-tab" type="button" data-settings-tab="privacy">Privacy</button>
           <button class="settings-tab" type="button" data-settings-tab="data">Data</button>
         </nav>
         <p class="settings-version">Orvian • Personal start page</p>
@@ -232,7 +232,7 @@
         <section class="settings-panel active" data-settings-panel="general">
           <p class="dialog-kicker">BROWSING</p><h3>General</h3>
           <div class="settings-card">
-            <label class="setting"><span><strong>Search engine</strong><small>Used for words and questions</small></span><select id="search-engine"><option value="ddg">DuckDuckGo</option><option value="google">Google</option><option value="bing">Bing</option><option value="brave">Brave</option><option value="startpage">Startpage</option></select></label>
+            <label class="setting"><span><strong>Search layout</strong><small>Choose the standard bar or a floating search dock</small></span><select id="search-layout-setting"><option value="standard">Standard</option><option value="floating">Floating dock</option></select></label><label class="setting range-setting"><span><strong>Search width</strong><small>Resize the search bar</small></span><input id="search-width-setting" type="range" min="360" max="760" step="20" /></label><label class="setting"><span><strong>Focus search on Home</strong><small>Place the cursor in search when Orvian opens</small></span><input id="search-focus-setting" type="checkbox" /></label><label class="setting"><span><strong>Search engine</strong><small>Used for words and questions</small></span><select id="search-engine"><option value="ddg">DuckDuckGo</option><option value="google">Google</option><option value="bing">Bing</option><option value="brave">Brave</option><option value="startpage">Startpage</option></select></label>
             <label class="setting"><span><strong>Open in new tabs</strong><small>Keep Orvian open while browsing</small></span><input id="new-tab-setting" type="checkbox" /></label>
           </div>
         </section>
@@ -240,11 +240,35 @@
           <p class="dialog-kicker">PERSONALIZE</p><h3>Appearance</h3>
           <div class="settings-card">
             <label class="setting"><span><strong>Color style</strong><small>Choose Orvian’s interface tone</small></span><select id="theme-setting"><option value="midnight">Midnight</option><option value="obsidian">Obsidian</option><option value="graphite">Graphite</option></select></label>
-            <label class="setting range-setting"><span><strong>Background brightness</strong><small>Adjust the animated banner</small></span><input id="background-setting" type="range" min="20" max="100" step="5" /></label>
+            <label class="setting"><span><strong>Interface density</strong><small>Adjust spacing across Orvian</small></span><select id="density-setting"><option value="comfortable">Comfortable</option><option value="compact">Compact</option></select></label><label class="setting"><span><strong>Show clock</strong><small>Display local time on Home</small></span><input id="clock-setting" type="checkbox" /></label><label class="setting"><span><strong>Show shortcuts</strong><small>Display the Home shortcut grid</small></span><input id="shortcuts-setting" type="checkbox" /></label><label class="setting"><span><strong>Show utility dock</strong><small>Display Links, Settings, Account, and Tabs</small></span><input id="dock-setting" type="checkbox" /></label><label class="setting range-setting"><span><strong>Background brightness</strong><small>Adjust the animated banner</small></span><input id="background-setting" type="range" min="20" max="100" step="5" /></label>
             <label class="setting"><span><strong>Show poster images</strong><small>Display the rotating artwork beside Orvian</small></span><input id="images-setting" type="checkbox" /></label>
             <label class="setting"><span><strong>Silver mouse trail</strong><small>Follow the pointer with a metallic glow</small></span><input id="trail-setting" type="checkbox" /></label>
             <label class="setting"><span><strong>Ambient music</strong><small>Loop the background track with soft fades</small></span><input id="music-setting" type="checkbox" /></label>
             <label class="setting"><span><strong>Reduce motion</strong><small>Disable animations and movement</small></span><input id="motion-setting" type="checkbox" /></label>
+          </div>
+        </section>
+        <section class="settings-panel" data-settings-panel="chat">
+          <p class="dialog-kicker">COMMUNITY</p><h3>Chat</h3>
+          <div class="settings-card">
+            <label class="setting"><span><strong>Compact messages</strong><small>Reduce spacing between message groups</small></span><input id="chat-compact-setting" type="checkbox" /></label>
+            <label class="setting"><span><strong>Show offline members</strong><small>Keep offline accounts visible in the member list</small></span><input id="chat-offline-setting" type="checkbox" /></label>
+            <label class="setting"><span><strong>Open member list by default</strong><small>Show the roster whenever Chat opens</small></span><input id="chat-members-setting" type="checkbox" /></label>
+            <label class="setting"><span><strong>24-hour timestamps</strong><small>Use 24-hour time in future chat displays</small></span><input id="chat-time-setting" type="checkbox" /></label>
+          </div>
+        </section>
+        <section class="settings-panel" data-settings-panel="play">
+          <p class="dialog-kicker">ARCADE</p><h3>Play</h3>
+          <div class="settings-card">
+            <label class="setting"><span><strong>Compact game cards</strong><small>Fit more games on screen</small></span><input id="games-compact-setting" type="checkbox" /></label>
+            <label class="setting"><span><strong>Remember last category</strong><small>Restore the last Play filter on this browser</small></span><input id="games-remember-setting" type="checkbox" /></label>
+          </div>
+        </section>
+        <section class="settings-panel" data-settings-panel="accessibility">
+          <p class="dialog-kicker">READABILITY</p><h3>Accessibility</h3>
+          <div class="settings-card">
+            <label class="setting range-setting"><span><strong>Text size</strong><small>Scale Orvian interface text</small></span><input id="font-scale-setting" type="range" min="90" max="125" step="5" /></label>
+            <label class="setting"><span><strong>High contrast</strong><small>Increase text and border contrast</small></span><input id="contrast-setting" type="checkbox" /></label>
+            <label class="setting"><span><strong>Strong focus outlines</strong><small>Make keyboard focus easier to see</small></span><input id="focus-outline-setting" type="checkbox" /></label>
           </div>
         </section>
         <section class="settings-panel" data-settings-panel="privacy">
