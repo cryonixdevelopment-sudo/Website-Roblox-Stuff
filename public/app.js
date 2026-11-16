@@ -585,7 +585,7 @@ function renderChatMessages(messages){
   const groups=[];
   messages.forEach(message=>{
     const previous=groups.at(-1);
-    const closeInTime=previous&&new Date(message.created_at)-new Date(previous.messages.at(-1).created_at)<5*60*1000;
+    const closeInTime=previous&&new Date(message.created_at).toDateString()===new Date(previous.messages.at(-1).created_at).toDateString()&&new Date(message.created_at)-new Date(previous.messages.at(-1).created_at)<5*60*1000;
     if(previous&&previous.username===message.username&&closeInTime)previous.messages.push(message);
     else groups.push({username:message.username,role:message.role,messages:[message]});
   });
@@ -608,7 +608,7 @@ function renderChatMessages(messages){
       entry.append(text);
       const attachment=message.attachment_data||message.attachment_url;
       if(attachment){const image=document.createElement('img');image.className='chat-message-attachment';image.src=attachment;image.alt='Shared attachment';image.loading='lazy';entry.append(image)}
-      if(message.canModify&&!activeDmUser){
+      if(message.canModify){
         const actions=document.createElement('span');actions.className='chat-message-actions';
         const edit=document.createElement('button');edit.type='button';edit.className='chat-message-action';edit.textContent='Edit';edit.addEventListener('click',()=>editChatMessage(message));
         const remove=document.createElement('button');remove.type='button';remove.className='chat-message-action delete';remove.textContent='Delete';remove.addEventListener('click',()=>deleteChatMessage(message));
@@ -680,7 +680,9 @@ document.querySelectorAll('.chat-channel').forEach(button=>button.addEventListen
 }));
 document.querySelector('#chat-form').addEventListener('submit',async event=>{
   event.preventDefault();
+  if(chatInput.disabled)return;
   const body=chatInput.value.trim();if(!body&&!pendingChatAttachment)return;
+  const sentContext=activeDmUser?'dm:'+activeDmUser.id:'channel:'+activeChatChannel;
   chatInput.disabled=true;chatStatus.textContent='Sending…';
   try{
     if(body.startsWith('/')){
@@ -691,12 +693,14 @@ document.querySelector('#chat-form').addEventListener('submit',async event=>{
       chatInput.value='';hideCommandMenu();chatStatus.textContent=data.message||'Command completed.';loadMembers();loadChatMessages({quiet:true});return;
     }
     const url=activeDmUser?'/api/chat/dm/'+encodeURIComponent(activeDmUser.id):'/api/chat/messages';
-    const payload=activeDmUser?{body}:{channel:activeChatChannel,body,attachmentData:pendingChatAttachment?.data||'',attachmentUrl:pendingChatAttachment?.url||''};
+    const payload={body,channel:activeChatChannel,attachmentData:pendingChatAttachment?.data||'',attachmentUrl:pendingChatAttachment?.url||''};
     const response=await fetch(url,{method:'POST',headers:{'Content-Type':'application/json'},credentials:'same-origin',body:JSON.stringify(payload)});
     const data=await response.json();if(!response.ok)throw new Error(data.error||'Unable to send.');
-    chatInput.value='';clearChatAttachment();chatStatus.textContent='';loadChatMessages();
+    const contextNow=activeDmUser?'dm:'+activeDmUser.id:'channel:'+activeChatChannel;
+    if(contextNow===sentContext){chatInput.value='';clearChatAttachment();chatStatus.textContent='';loadChatMessages();}
+    loadConversations();
   }catch(error){chatStatus.textContent=error.message}
-  finally{chatInput.disabled=false;chatInput.focus()}
+  finally{chatInput.disabled=false;syncChatContext();if(!chatInput.disabled)chatInput.focus()}
 });
 
 
@@ -815,7 +819,7 @@ profileForm.addEventListener('submit',async event=>{
   try{
     const response=await fetch('/api/account/profile',{method:'PATCH',headers:{'Content-Type':'application/json'},credentials:'same-origin',body:JSON.stringify({displayName:profileDisplayName.value,bio:profileBio.value,avatar:pendingProfileAvatar,banner:pendingProfileBanner,status:profileStatus.value,effect:profileEffect.value})});
     const data=await response.json();if(!response.ok)throw new Error(data.error||'Unable to save profile.');
-    authUser=data.user;renderAuthState();profileDialog.close();openChat();loadMembers();notify('Profile updated');
+    authUser=data.user;renderAuthState();profileDialog.close();if(!chatView.hidden)openChat();loadMembers();notify('Profile updated');
   }catch(error){profileMessage.textContent=error.message}
 });
 
@@ -1106,3 +1110,4 @@ syncSearchPlacement();
 new MutationObserver(()=>{searchForm.classList.toggle('search-away',launcher.hidden)}).observe(launcher,{attributes:true,attributeFilter:['hidden']});
 searchInput.autofocus=settingValue('searchFocus')==='true';
 if(settingValue('searchFocus')==='false')searchInput.blur();
+
