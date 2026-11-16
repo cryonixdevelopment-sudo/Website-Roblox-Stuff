@@ -1265,3 +1265,9 @@ html.high-contrast .setting small,html.high-contrast .game-card small,html.high-
   box-shadow:0 12px 40px rgba(0,0,0,.45);
 }
 @media(max-width:650px){.viewer-bar{gap:3px;padding:6px}.viewer-bar button{padding:0 7px}#viewer-external{font-size:0}#viewer-external::after{content:"↗";font-size:14px}#viewer-url{font-size:.65rem}#viewer.floating-toolbar .viewer-bar{width:calc(100vw - 16px);bottom:12px}}
+
+/* Smooth transparent chrome artwork supplied for the Orvian shortcuts. */
+.chrome-tile-icon { width:46px;height:42px;display:grid;place-items:center; }
+.chrome-tile-icon img { display:block;width:100%;height:100%;object-fit:contain;image-rendering:auto;filter:brightness(1.15); }
+.utility-dock .chrome-dock-icon { width:25px;height:25px;object-fit:contain;image-rendering:auto;opacity:1;filter:brightness(1.2); }
+.utility-dock button:hover .chrome-dock-icon { filter:brightness(1.45); }
