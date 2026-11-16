@@ -1080,3 +1080,5 @@ body.gaming { overflow:hidden; }
 
 .game-card-icon img { width:31px;height:31px;display:block;object-fit:contain;border-radius:8px;image-rendering:auto; }
 .request-icon { font-size:1.35rem; }
+
+.game-card-icon.icon-fallback::before { content:attr(data-fallback);display:grid;place-items:center;width:31px;height:31px;border-radius:8px;background:linear-gradient(145deg,#d5d8e0,#5f6470);color:#101116;font-size:.75rem;font-weight:800; }
