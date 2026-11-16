@@ -1082,3 +1082,5 @@ body.gaming { overflow:hidden; }
 .request-icon { font-size:1.35rem; }
 
 .game-card-icon.icon-fallback::before { content:attr(data-fallback);display:grid;place-items:center;width:31px;height:31px;border-radius:8px;background:linear-gradient(145deg,#d5d8e0,#5f6470);color:#101116;font-size:.75rem;font-weight:800; }
+
+.official-game-icon[hidden] { display:none!important; }
