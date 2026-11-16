@@ -52,7 +52,7 @@
           </div>
           <div class="shortcut-divider" role="separator" aria-label="More shortcuts"></div>
           <div class="shortcut-grid entertainment-shortcuts" aria-label="Entertainment bookmarks">
-            <button class="tile" type="button" data-panel="games-dialog"><span class="tile-icon pixel-icon"><img src="/icons/play.png" alt="" /></span><span>Play</span></button>
+            <button id="games-open" class="tile" type="button"><span class="tile-icon pixel-icon"><img src="/icons/play.png" alt="" /></span><span>Play</span></button>
             <a class="tile" href="https://www.youtube.com/"><span class="tile-icon pixel-icon"><img src="/icons/movies.png" alt="" /></span><span>Movies</span></a>
             <a class="tile" href="https://www.crunchyroll.com/"><span class="tile-icon pixel-icon"><img src="/icons/anime.png" alt="" /></span><span>Anime</span></a>
             <a class="tile" href="https://music.youtube.com/"><span class="tile-icon pixel-icon"><img src="/icons/music.png" alt="" /></span><span>Music</span></a>
@@ -134,6 +134,54 @@
         </aside>
       </section>
 
+      <section id="games-view" class="games-view" hidden>
+        <header class="games-topbar">
+          <button id="games-close" class="games-back" type="button" aria-label="Return home">←</button>
+          <div class="games-title"><span>ORVIAN</span><strong>Play</strong></div>
+          <label class="games-search"><span aria-hidden="true">⌕</span><input id="games-search-input" type="search" placeholder="Search games and platforms" aria-label="Search games" /></label>
+        </header>
+        <div class="games-shell">
+          <aside class="games-sidebar">
+            <p>Library</p>
+            <button class="game-filter active" type="button" data-game-filter="all">All games</button>
+            <button class="game-filter" type="button" data-game-filter="arcade">Arcade</button>
+            <button class="game-filter" type="button" data-game-filter="multiplayer">Multiplayer</button>
+            <button class="game-filter" type="button" data-game-filter="puzzle">Puzzle & strategy</button>
+            <button class="game-filter" type="button" data-game-filter="platform">Game platforms</button>
+            <div class="games-sidebar-note">Games come from their official websites. Availability and embedded-browser support vary by provider.</div>
+          </aside>
+          <main class="games-main">
+            <section class="games-hero">
+              <div><span class="games-kicker">ORVIAN ARCADE</span><h1>Pick something to play.</h1><p>A clean library of free-access browser games and official game platforms.</p></div>
+              <div class="games-hero-art" aria-hidden="true">◈</div>
+            </section>
+            <section class="games-section request-section">
+              <div class="games-section-heading"><div><span>01</span><h2>Request a game</h2></div><p>Your request form will appear here when its Google Form link is ready.</p></div>
+              <button class="game-card request-card" type="button" disabled>
+                <span class="game-card-icon">＋</span><span class="game-card-copy"><strong>Request a Game</strong><small>Form link coming soon</small></span>
+              </button>
+            </section>
+            <section class="games-section">
+              <div class="games-section-heading"><div><span>02</span><h2>Free browser games</h2></div><p>Choose a title to open it as an Orvian tab.</p></div>
+              <div id="games-grid" class="games-grid">
+                <button class="game-card" type="button" data-game-category="puzzle" data-game-name="Lichess Chess" data-game-url="https://lichess.org/"><span class="game-card-icon">♞</span><span class="game-card-copy"><strong>Lichess</strong><small>Chess · Puzzle</small></span></button>
+                <button class="game-card" type="button" data-game-category="arcade multiplayer" data-game-name="TETR.IO Tetris" data-game-url="https://tetr.io/"><span class="game-card-icon">▦</span><span class="game-card-copy"><strong>TETR.IO</strong><small>Blocks · Arcade</small></span></button>
+                <button class="game-card" type="button" data-game-category="multiplayer" data-game-name="Skribbl.io Drawing" data-game-url="https://skribbl.io/"><span class="game-card-icon">✎</span><span class="game-card-copy"><strong>skribbl.io</strong><small>Drawing · Multiplayer</small></span></button>
+                <button class="game-card" type="button" data-game-category="arcade multiplayer" data-game-name="Agar.io" data-game-url="https://agar.io/"><span class="game-card-icon">●</span><span class="game-card-copy"><strong>Agar.io</strong><small>Arcade · Multiplayer</small></span></button>
+                <button class="game-card" type="button" data-game-category="arcade multiplayer" data-game-name="Slither.io" data-game-url="https://slither.io/"><span class="game-card-icon">〰</span><span class="game-card-copy"><strong>Slither.io</strong><small>Arcade · Multiplayer</small></span></button>
+                <button class="game-card" type="button" data-game-category="multiplayer" data-game-name="Shell Shockers" data-game-url="https://shellshock.io/"><span class="game-card-icon">◉</span><span class="game-card-copy"><strong>Shell Shockers</strong><small>Action · Multiplayer</small></span></button>
+                <button class="game-card" type="button" data-game-category="platform" data-game-name="itch.io Browser Games" data-game-url="https://itch.io/games/html5"><span class="game-card-icon">itch</span><span class="game-card-copy"><strong>itch.io</strong><small>Independent browser games</small></span></button>
+                <button class="game-card" type="button" data-game-category="platform" data-game-name="Poki Games" data-game-url="https://poki.com/"><span class="game-card-icon">P</span><span class="game-card-copy"><strong>Poki</strong><small>Free game platform</small></span></button>
+                <button class="game-card" type="button" data-game-category="platform" data-game-name="CrazyGames" data-game-url="https://www.crazygames.com/"><span class="game-card-icon">C</span><span class="game-card-copy"><strong>CrazyGames</strong><small>Free game platform</small></span></button>
+                <button class="game-card" type="button" data-game-category="platform arcade" data-game-name="Newgrounds Games" data-game-url="https://www.newgrounds.com/games"><span class="game-card-icon">N</span><span class="game-card-copy"><strong>Newgrounds</strong><small>Community games</small></span></button>
+                <button class="game-card" type="button" data-game-category="platform puzzle arcade" data-game-name="Google GameSnacks" data-game-url="https://gamesnacks.com/"><span class="game-card-icon">G</span><span class="game-card-copy"><strong>GameSnacks</strong><small>Quick browser games</small></span></button>
+              </div>
+              <p id="games-empty" class="games-empty" hidden>No games match that search.</p>
+            </section>
+          </main>
+        </div>
+      </section>
+
       <nav class="utility-dock" aria-label="Utilities">
         <button type="button" data-panel="links-dialog"><img class="dock-icon" src="/icons/links.png" alt="" /> Links</button>
         <button type="button" data-panel="settings-dialog"><img class="dock-icon" src="/icons/settings.png" alt="" /> Settings</button>
@@ -143,20 +191,6 @@
       </nav>
     </main>
 
-    <dialog id="games-dialog" class="games-dialog">
-      <form method="dialog"><button class="close" aria-label="Close games">×</button></form>
-      <p class="dialog-kicker">ORVIAN ARCADE</p>
-      <h2>Play</h2>
-      <p class="muted">Games run inside Orvian. More titles are being prepared.</p>
-      <section class="game-section request-game-section">
-        <div><span class="game-section-number">01</span><h3>Request a Game</h3><p>Suggest a game for the Orvian library.</p></div>
-        <button class="request-game-button" type="button" disabled title="The request link will be added soon">Request link coming soon</button>
-      </section>
-      <section class="game-section">
-        <div><span class="game-section-number">02</span><h3>Game Library</h3><p>Open-source games will appear here after they are reviewed and added.</p></div>
-        <div class="game-library-empty">No games added yet</div>
-      </section>
-    </dialog>
     <dialog id="links-dialog"><form method="dialog"><button class="close" aria-label="Close">×</button></form><p class="dialog-kicker">ORVIAN</p><h2>Your links</h2><div id="saved-links" class="saved-links"></div><button id="dialog-add-link" class="primary" type="button">Add a link</button></dialog>
     <dialog id="settings-dialog" class="settings-dialog">
       <form method="dialog"><button class="close" aria-label="Close">×</button></form>
