@@ -569,30 +569,45 @@ function renderChatMessages(messages){
   chatMessages.replaceChildren();
   if(!messages.length){
     const empty=document.createElement('p');empty.className='chat-welcome';
-    empty.textContent=activeChatChannel==='announcements'?'No announcements yet.':activeChatChannel==='rules'?'No rules have been posted yet.':'This channel is quiet. Start the conversation.';
+    empty.textContent=activeDmUser?'No messages yet. Say hello.':activeChatChannel==='announcements'?'No announcements yet.':activeChatChannel==='rules'?'No rules have been posted yet.':'This channel is quiet. Start the conversation.';
     chatMessages.append(empty);return;
   }
+  const groups=[];
   messages.forEach(message=>{
-    const item=document.createElement('article');item.className='chat-message';
-    const avatar=document.createElement('span');avatar.className='chat-message-avatar';avatar.textContent=message.username.charAt(0).toUpperCase();
-    const body=document.createElement('div');
+    const previous=groups.at(-1);
+    const closeInTime=previous&&new Date(message.created_at)-new Date(previous.messages.at(-1).created_at)<5*60*1000;
+    if(previous&&previous.username===message.username&&closeInTime)previous.messages.push(message);
+    else groups.push({username:message.username,role:message.role,messages:[message]});
+  });
+  groups.forEach(group=>{
+    const item=document.createElement('article');item.className='chat-message chat-message-group';
+    const member=allChatMembers.find(person=>person.username===group.username);
+    const avatar=member?avatarElement(member,'chat-message-avatar'):document.createElement('span');
+    if(!member){avatar.className='chat-message-avatar';avatar.textContent=group.username.charAt(0).toUpperCase()}
+    const body=document.createElement('div');body.className='chat-message-group-body';
     const head=document.createElement('div');head.className='chat-message-head';
-    const name=document.createElement('strong');name.textContent=message.username;head.append(name);
-    if(message.role==='owner'){const badge=document.createElement('span');badge.className='chat-owner-badge';badge.textContent='OWNER';head.append(badge)}
-    const time=document.createElement('time');time.dateTime=message.created_at;time.textContent=new Intl.DateTimeFormat(undefined,{month:'short',day:'numeric',hour:'numeric',minute:'2-digit'}).format(new Date(message.created_at));head.append(time);
-    if(message.edited_at){const edited=document.createElement('span');edited.className='chat-edited';edited.textContent='(edited)';head.append(edited)}
-    if(message.canModify&&!activeDmUser){
-      const actions=document.createElement('span');actions.className='chat-message-actions';
-      const edit=document.createElement('button');edit.type='button';edit.className='chat-message-action';edit.textContent='Edit';edit.addEventListener('click',()=>editChatMessage(message));
-      const remove=document.createElement('button');remove.type='button';remove.className='chat-message-action delete';remove.textContent='Delete';remove.addEventListener('click',()=>deleteChatMessage(message));
-      actions.append(edit,remove);head.append(actions);
-    }
-    const text=document.createElement('p');text.textContent=message.body;
-    if(authUser&&message.body?.toLowerCase().includes('@'+authUser.username.toLowerCase()))item.classList.add('mentions-you');
-    body.append(head,text);
-    const attachment=message.attachment_data||message.attachment_url;
-    if(attachment){const image=document.createElement('img');image.className='chat-message-attachment';image.src=attachment;image.alt='Shared attachment';image.loading='lazy';body.append(image)}
-    item.dataset.search=(message.username+' '+message.body).toLowerCase();item.append(avatar,body);chatMessages.append(item);
+    const name=document.createElement('strong');name.textContent=member?.displayName||group.username;head.append(name);
+    if(group.role==='owner'){const badge=document.createElement('span');badge.className='chat-owner-badge';badge.textContent='OWNER';head.append(badge)}
+    const first=group.messages[0];const time=document.createElement('time');time.dateTime=first.created_at;time.textContent=new Intl.DateTimeFormat(undefined,{month:'short',day:'numeric',hour:'numeric',minute:'2-digit'}).format(new Date(first.created_at));head.append(time);
+    body.append(head);
+    group.messages.forEach(message=>{
+      const entry=document.createElement('div');entry.className='chat-message-entry';
+      const text=document.createElement('p');text.textContent=message.body;
+      if(message.edited_at){const edited=document.createElement('span');edited.className='chat-edited';edited.textContent='(edited)';text.append(' ',edited)}
+      if(authUser&&message.body?.toLowerCase().includes('@'+authUser.username.toLowerCase())){entry.classList.add('mentions-you');item.classList.add('has-mention')}
+      entry.append(text);
+      const attachment=message.attachment_data||message.attachment_url;
+      if(attachment){const image=document.createElement('img');image.className='chat-message-attachment';image.src=attachment;image.alt='Shared attachment';image.loading='lazy';entry.append(image)}
+      if(message.canModify&&!activeDmUser){
+        const actions=document.createElement('span');actions.className='chat-message-actions';
+        const edit=document.createElement('button');edit.type='button';edit.className='chat-message-action';edit.textContent='Edit';edit.addEventListener('click',()=>editChatMessage(message));
+        const remove=document.createElement('button');remove.type='button';remove.className='chat-message-action delete';remove.textContent='Delete';remove.addEventListener('click',()=>deleteChatMessage(message));
+        actions.append(edit,remove);entry.append(actions);
+      }
+      body.append(entry);
+    });
+    item.dataset.search=(group.username+' '+group.messages.map(message=>message.body).join(' ')).toLowerCase();
+    item.append(avatar,body);chatMessages.append(item);
   });
   chatMessages.scrollTop=chatMessages.scrollHeight;
 }
@@ -916,3 +931,50 @@ document.querySelectorAll('[data-game-url]').forEach(card=>card.addEventListener
 document.querySelectorAll('.official-game-icon').forEach(image=>image.addEventListener('error',()=>{
   image.hidden=true;const holder=image.closest('.game-card-icon');if(holder){holder.classList.add('icon-fallback');holder.dataset.fallback=image.dataset.iconFallback||'◈'}
 },{once:true}));
+
+
+// Discord-style mention autocomplete
+const mentionMenu=document.querySelector('#mention-menu');
+let mentionMatches=[];
+let mentionActiveIndex=0;
+let mentionRange=null;
+function hideMentionMenu(){mentionMenu.hidden=true;mentionMenu.replaceChildren();mentionMatches=[];mentionRange=null}
+function mentionCandidates(query=''){
+  const needle=query.toLowerCase();
+  return allChatMembers.filter(member=>member.id!==authUser?.id&&!member.blocked&&(member.username.toLowerCase().includes(needle)||member.displayName.toLowerCase().includes(needle))).slice(0,8);
+}
+function renderMentionMenu(members,range){
+  mentionMatches=members;mentionRange=range;mentionActiveIndex=0;mentionMenu.replaceChildren();
+  if(!members.length){hideMentionMenu();return}
+  const heading=document.createElement('p');heading.className='mention-heading';heading.textContent='MEMBERS';mentionMenu.append(heading);
+  members.forEach((member,index)=>{
+    const button=document.createElement('button');button.type='button';button.className='mention-option';button.setAttribute('role','option');
+    const avatar=avatarElement(member,'mention-avatar');const copy=document.createElement('span');const display=document.createElement('strong');display.textContent=member.displayName;const username=document.createElement('small');username.textContent='@'+member.username;copy.append(display,username);button.append(avatar,copy);
+    button.addEventListener('mousedown',event=>{event.preventDefault();insertMention(member)});
+    mentionMenu.append(button);
+  });
+  updateMentionSelection();mentionMenu.hidden=false;
+}
+function updateMentionSelection(){mentionMenu.querySelectorAll('.mention-option').forEach((button,index)=>{button.classList.toggle('active',index===mentionActiveIndex);button.setAttribute('aria-selected',String(index===mentionActiveIndex))})}
+function insertMention(member){
+  if(!member)return;const start=mentionRange?.start??chatInput.selectionStart;const end=mentionRange?.end??chatInput.selectionStart;
+  chatInput.setRangeText('@'+member.username+' ',start,end,'end');hideMentionMenu();chatInput.focus();
+}
+function updateMentionAutocomplete(){
+  const cursor=chatInput.selectionStart;const before=chatInput.value.slice(0,cursor);const match=before.match(/(?:^|\s)@([a-zA-Z0-9_]*)$/);
+  if(!match){hideMentionMenu();return}
+  const query=match[1];renderMentionMenu(mentionCandidates(query),{start:cursor-query.length-1,end:cursor});
+}
+chatInput.addEventListener('input',updateMentionAutocomplete);
+chatInput.addEventListener('keydown',event=>{
+  if(mentionMenu.hidden)return;
+  if(event.key==='ArrowDown'){event.preventDefault();mentionActiveIndex=(mentionActiveIndex+1)%mentionMatches.length;updateMentionSelection()}
+  else if(event.key==='ArrowUp'){event.preventDefault();mentionActiveIndex=(mentionActiveIndex-1+mentionMatches.length)%mentionMatches.length;updateMentionSelection()}
+  else if(event.key==='Enter'||event.key==='Tab'){event.preventDefault();insertMention(mentionMatches[mentionActiveIndex])}
+  else if(event.key==='Escape'){event.preventDefault();hideMentionMenu()}
+});
+document.querySelector('#composer-mention').addEventListener('click',()=>{
+  const cursor=chatInput.selectionStart;const spacer=cursor>0&&!/\s$/.test(chatInput.value.slice(0,cursor))?' ':'';
+  chatInput.setRangeText(spacer+'@',cursor,cursor,'end');updateMentionAutocomplete();chatInput.focus();
+});
+document.addEventListener('click',event=>{if(!mentionMenu.contains(event.target)&&event.target!==chatInput&&event.target.id!=='composer-mention')hideMentionMenu()});
