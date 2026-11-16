@@ -1,4 +1,4 @@
-const storageKeys={links:'orvian-links',engine:'orvian-search-engine',newTabs:'orvian-new-tabs',reduceMotion:'orvian-reduce-motion',profile:'orvian-profile',theme:'orvian-theme',background:'orvian-background',preferHttps:'orvian-prefer-https',stripTracking:'orvian-strip-tracking',music:'orvian-music',showImages:'orvian-show-images',showTrail:'orvian-show-trail'};
+const storageKeys={links:'orvian-links',engine:'orvian-search-engine',newTabs:'orvian-new-tabs',reduceMotion:'orvian-reduce-motion',profile:'orvian-profile',theme:'orvian-theme',background:'orvian-background',preferHttps:'orvian-prefer-https',stripTracking:'orvian-strip-tracking',music:'orvian-music',showImages:'orvian-show-images',showTrail:'orvian-show-trail',searchLayout:'orvian-search-layout',searchWidth:'orvian-search-width',searchFocus:'orvian-search-focus',density:'orvian-density',showClock:'orvian-show-clock',showShortcuts:'orvian-show-shortcuts',showDock:'orvian-show-dock',chatCompact:'orvian-chat-compact',chatOffline:'orvian-chat-offline',chatMembers:'orvian-chat-members',chatTime24:'orvian-chat-time24',gamesCompact:'orvian-games-compact',gamesRemember:'orvian-games-remember',fontScale:'orvian-font-scale',highContrast:'orvian-high-contrast',strongFocus:'orvian-strong-focus',lastGameFilter:'orvian-last-game-filter'};
 const engines={ddg:'https://duckduckgo.com/?q=',google:'https://www.google.com/search?q=',bing:'https://www.bing.com/search?q=',brave:'https://search.brave.com/search?q=',startpage:'https://www.startpage.com/sp/search?query='};
 const searchForm=document.querySelector('#search-form');
 const searchInput=document.querySelector('#search-input');
@@ -588,7 +588,7 @@ function renderChatMessages(messages){
     const head=document.createElement('div');head.className='chat-message-head';
     const name=document.createElement('strong');name.textContent=member?.displayName||group.username;head.append(name);
     if(group.role==='owner'){const badge=document.createElement('span');badge.className='chat-owner-badge';badge.textContent='OWNER';head.append(badge)}
-    const first=group.messages[0];const time=document.createElement('time');time.dateTime=first.created_at;time.textContent=new Intl.DateTimeFormat(undefined,{month:'short',day:'numeric',hour:'numeric',minute:'2-digit'}).format(new Date(first.created_at));head.append(time);
+    const first=group.messages[0];const time=document.createElement('time');time.dateTime=first.created_at;time.textContent=new Intl.DateTimeFormat(undefined,{month:'short',day:'numeric',hour:'numeric',minute:'2-digit',hour12:localStorage.getItem(storageKeys.chatTime24)==='true'?false:undefined}).format(new Date(first.created_at));head.append(time);
     body.append(head);
     group.messages.forEach(message=>{
       const entry=document.createElement('div');entry.className='chat-message-entry';
@@ -642,7 +642,7 @@ async function loadChatMessages({quiet=false}={}){
 }
 function openChat(){
   if(!authUser){openAuthPrompt();return}
-  launcher.hidden=true;chatView.hidden=false;document.body.classList.add('chatting');
+  launcher.hidden=true;chatView.hidden=false;chatView.classList.toggle('members-hidden',localStorage.getItem(storageKeys.chatMembers)==='false');document.body.classList.add('chatting');
   document.querySelector('#chat-user-name').textContent=authUser.displayName||authUser.username;
   document.querySelector('#chat-user-role').textContent=authUser.role;
   const userAvatar=document.querySelector('#chat-user-avatar');
@@ -735,7 +735,9 @@ function renderMembers(members){
   allChatMembers=members;
   membersList.replaceChildren();
   document.querySelector('#member-count').textContent=String(members.length);
-  for(const group of [{title:'Online',members:members.filter(member=>member.status!=='offline')},{title:'Offline',members:members.filter(member=>member.status==='offline')}]){
+  const showOffline=localStorage.getItem(storageKeys.chatOffline)!=='false';
+  const groups=[{title:'Online',members:members.filter(member=>member.status!=='offline')}];if(showOffline)groups.push({title:'Offline',members:members.filter(member=>member.status==='offline')});
+  for(const group of groups){
     const title=document.createElement('h3');title.className='member-group-title';title.textContent=group.title+' — '+group.members.length;membersList.append(title);
     group.members.forEach(member=>{
       const card=document.createElement('button');card.type='button';card.className='member-card '+member.status;card.setAttribute('aria-label','View '+member.displayName+' profile');card.addEventListener('click',()=>openMemberProfile(member));
@@ -898,6 +900,9 @@ function openGames(){
   if(!gamesView)return;
   launcher.hidden=true;viewer.hidden=true;if(typeof chatView!=='undefined')chatView.hidden=true;gamesView.hidden=false;
   document.body.classList.remove('viewing','chatting');document.body.classList.add('gaming');
+  if(localStorage.getItem(storageKeys.gamesRemember)!=='false'){
+    const saved=localStorage.getItem(storageKeys.lastGameFilter)||'all';const button=document.querySelector(`.game-filter[data-game-filter="${saved}"]`);if(button){activeGameFilter=saved;document.querySelectorAll('.game-filter').forEach(item=>item.classList.toggle('active',item===button));filterGames()}
+  }
   requestAnimationFrame(()=>gamesSearchInput?.focus());
 }
 function closeGames(){
@@ -921,7 +926,7 @@ gamesSearchInput?.addEventListener('input',filterGames);
 gamesSearchInput?.addEventListener('search',filterGames);
 gamesSearchInput?.addEventListener('keydown',event=>{if(event.key==='Enter'){event.preventDefault();filterGames()}});
 document.querySelectorAll('.game-filter').forEach(button=>button.addEventListener('click',()=>{
-  activeGameFilter=button.dataset.gameFilter||'all';
+  activeGameFilter=button.dataset.gameFilter||'all';if(localStorage.getItem(storageKeys.gamesRemember)!=='false')localStorage.setItem(storageKeys.lastGameFilter,activeGameFilter);
   document.querySelectorAll('.game-filter').forEach(item=>item.classList.toggle('active',item===button));
   filterGames();
 }));
@@ -1021,3 +1026,32 @@ chatInput.addEventListener('keydown',event=>{
   else if(event.key==='Tab'||event.key==='Enter'){event.preventDefault();chooseCommand(commandMatches[commandActiveIndex])}
   else if(event.key==='Escape'){event.preventDefault();hideCommandMenu()}
 });
+
+
+// Expanded settings and switchable search layout
+const advancedSettings={
+  searchLayout:document.querySelector('#search-layout-setting'),searchWidth:document.querySelector('#search-width-setting'),searchFocus:document.querySelector('#search-focus-setting'),
+  density:document.querySelector('#density-setting'),showClock:document.querySelector('#clock-setting'),showShortcuts:document.querySelector('#shortcuts-setting'),showDock:document.querySelector('#dock-setting'),
+  chatCompact:document.querySelector('#chat-compact-setting'),chatOffline:document.querySelector('#chat-offline-setting'),chatMembers:document.querySelector('#chat-members-setting'),chatTime24:document.querySelector('#chat-time-setting'),
+  gamesCompact:document.querySelector('#games-compact-setting'),gamesRemember:document.querySelector('#games-remember-setting'),
+  fontScale:document.querySelector('#font-scale-setting'),highContrast:document.querySelector('#contrast-setting'),strongFocus:document.querySelector('#focus-outline-setting')
+};
+const advancedDefaults={searchLayout:'standard',searchWidth:'560',searchFocus:'true',density:'comfortable',showClock:'true',showShortcuts:'true',showDock:'true',chatCompact:'false',chatOffline:'true',chatMembers:'true',chatTime24:'false',gamesCompact:'false',gamesRemember:'true',fontScale:'100',highContrast:'false',strongFocus:'false'};
+function settingValue(name){return localStorage.getItem(storageKeys[name])??advancedDefaults[name]}
+function applyAdvancedSettings(){
+  const root=document.documentElement;
+  root.classList.toggle('search-floating',settingValue('searchLayout')==='floating');
+  root.style.setProperty('--home-search-width',settingValue('searchWidth')+'px');
+  root.classList.toggle('ui-compact',settingValue('density')==='compact');
+  root.classList.toggle('hide-clock',settingValue('showClock')==='false');root.classList.toggle('hide-shortcuts',settingValue('showShortcuts')==='false');root.classList.toggle('hide-dock',settingValue('showDock')==='false');
+  root.classList.toggle('chat-compact',settingValue('chatCompact')==='true');root.classList.toggle('games-compact',settingValue('gamesCompact')==='true');
+  root.style.setProperty('--orvian-font-scale',String(Number(settingValue('fontScale'))/100));
+  root.classList.toggle('high-contrast',settingValue('highContrast')==='true');root.classList.toggle('strong-focus',settingValue('strongFocus')==='true');
+}
+Object.entries(advancedSettings).forEach(([name,control])=>{
+  if(!control)return;const value=settingValue(name);if(control.type==='checkbox')control.checked=value==='true';else control.value=value;
+  control.addEventListener(control.type==='range'?'input':'change',()=>{const next=control.type==='checkbox'?String(control.checked):control.value;localStorage.setItem(storageKeys[name],next);applyAdvancedSettings();if(name==='chatOffline'&&typeof loadMembers==='function')loadMembers();if(name==='chatTime24'&&typeof loadChatMessages==='function'&&!chatView.hidden)loadChatMessages({quiet:true});if(name==='chatMembers'&&!chatView.hidden)chatView.classList.toggle('members-hidden',next==='false')});
+});
+applyAdvancedSettings();
+if(settingValue('searchFocus')==='true')requestAnimationFrame(()=>{if(!document.querySelector('dialog[open]'))searchInput.focus()});
+document.querySelectorAll('#clear-data,#settings-clear-data').forEach(button=>button.addEventListener('click',()=>setTimeout(()=>{Object.entries(advancedSettings).forEach(([name,control])=>{const value=advancedDefaults[name];if(control.type==='checkbox')control.checked=value==='true';else control.value=value});applyAdvancedSettings()},0)));
