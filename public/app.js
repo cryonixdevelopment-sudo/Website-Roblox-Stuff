@@ -673,6 +673,13 @@ document.querySelector('#chat-form').addEventListener('submit',async event=>{
   const body=chatInput.value.trim();if(!body&&!pendingChatAttachment)return;
   chatInput.disabled=true;chatStatus.textContent='Sending…';
   try{
+    if(body.startsWith('/')){
+      if(authUser?.role!=='owner')throw new Error('Only the Owner can use slash commands.');
+      if(activeDmUser)throw new Error('Moderation commands must be used in a public channel.');
+      const response=await fetch('/api/chat/command',{method:'POST',headers:{'Content-Type':'application/json'},credentials:'same-origin',body:JSON.stringify({command:body,channel:activeChatChannel})});
+      const data=await response.json();if(!response.ok)throw new Error(data.error||'Command failed.');
+      chatInput.value='';hideCommandMenu();chatStatus.textContent=data.message||'Command completed.';loadMembers();loadChatMessages({quiet:true});return;
+    }
     const url=activeDmUser?'/api/chat/dm/'+encodeURIComponent(activeDmUser.id):'/api/chat/messages';
     const payload=activeDmUser?{body}:{channel:activeChatChannel,body,attachmentData:pendingChatAttachment?.data||'',attachmentUrl:pendingChatAttachment?.url||''};
     const response=await fetch(url,{method:'POST',headers:{'Content-Type':'application/json'},credentials:'same-origin',body:JSON.stringify(payload)});
@@ -737,7 +744,7 @@ function renderMembers(members){
       const info=document.createElement('span');const name=document.createElement('strong');name.textContent=member.displayName;
       if(member.role==='owner'){name.classList.add('member-owner-name');card.classList.add('is-owner')}
       if(member.blocked)card.classList.add('blocked');
-      const detail=document.createElement('small');detail.textContent=member.blocked?'Blocked':member.role==='owner'?'Owner':member.status==='dnd'?'Do Not Disturb':member.status;
+      const detail=document.createElement('small');const muted=member.moderation?.mutedUntil&&new Date(member.moderation.mutedUntil)>new Date();detail.textContent=member.moderation?.banned?'Banned':muted?'Muted':member.blocked?'Blocked':member.role==='owner'?'Owner':member.status==='dnd'?'Do Not Disturb':member.status;if(member.moderation?.banned)card.classList.add('moderated','banned');else if(muted)card.classList.add('moderated','muted');
       info.append(name,detail);card.append(wrap,info);membersList.append(card);
     });
   }
@@ -978,3 +985,39 @@ document.querySelector('#composer-mention').addEventListener('click',()=>{
   chatInput.setRangeText(spacer+'@',cursor,cursor,'end');updateMentionAutocomplete();chatInput.focus();
 });
 document.addEventListener('click',event=>{if(!mentionMenu.contains(event.target)&&event.target!==chatInput&&event.target.id!=='composer-mention')hideMentionMenu()});
+
+
+// Owner slash-command palette
+const commandMenu=document.querySelector('#command-menu');
+const moderationCommands=[
+  {name:'/ban',usage:'/ban @username [reason]',description:'Permanently remove a member from Chat'},
+  {name:'/tempban',usage:'/tempban @username 1h [reason]',description:'Ban a member for a set duration'},
+  {name:'/mute',usage:'/mute @username 10m [reason]',description:'Stop a member from sending messages'},
+  {name:'/unban',usage:'/unban @username',description:'Remove a permanent or temporary ban'},
+  {name:'/unmute',usage:'/unmute @username',description:'Remove a mute'},
+  {name:'/clear',usage:'/clear 25',description:'Delete the latest 1–100 channel messages'},
+  {name:'/help',usage:'/help',description:'Show the available moderation commands'}
+];
+let commandMatches=[];let commandActiveIndex=0;
+function hideCommandMenu(){commandMenu.hidden=true;commandMenu.replaceChildren();commandMatches=[]}
+function renderCommandMenu(){
+  if(authUser?.role!=='owner'||activeDmUser||!chatInput.value.startsWith('/')||/\s/.test(chatInput.value)){hideCommandMenu();return}
+  const query=chatInput.value.split(/\s/)[0].toLowerCase();
+  commandMatches=moderationCommands.filter(command=>command.name.startsWith(query));commandActiveIndex=0;commandMenu.replaceChildren();
+  if(!commandMatches.length){hideCommandMenu();return}
+  const heading=document.createElement('p');heading.className='command-heading';heading.textContent='OWNER COMMANDS';commandMenu.append(heading);
+  commandMatches.forEach((command,index)=>{
+    const button=document.createElement('button');button.type='button';button.className='command-option';const copy=document.createElement('span');const name=document.createElement('strong');name.textContent=command.usage;const description=document.createElement('small');description.textContent=command.description;copy.append(name,description);button.append(copy);
+    button.addEventListener('mousedown',event=>{event.preventDefault();chooseCommand(command)});commandMenu.append(button);
+  });updateCommandSelection();commandMenu.hidden=false;mentionMenu.hidden=true;
+}
+function updateCommandSelection(){commandMenu.querySelectorAll('.command-option').forEach((button,index)=>{button.classList.toggle('active',index===commandActiveIndex);button.setAttribute('aria-selected',String(index===commandActiveIndex))})}
+function chooseCommand(command){chatInput.value=command.name+' ';hideCommandMenu();chatInput.focus();if(command.name!=='/clear'&&command.name!=='/help'){chatInput.value+='@';updateMentionAutocomplete()}}
+chatInput.addEventListener('input',renderCommandMenu);
+chatInput.addEventListener('keydown',event=>{
+  if(commandMenu.hidden)return;
+  if(event.key==='ArrowDown'){event.preventDefault();commandActiveIndex=(commandActiveIndex+1)%commandMatches.length;updateCommandSelection()}
+  else if(event.key==='ArrowUp'){event.preventDefault();commandActiveIndex=(commandActiveIndex-1+commandMatches.length)%commandMatches.length;updateCommandSelection()}
+  else if(event.key==='Tab'||event.key==='Enter'){event.preventDefault();chooseCommand(commandMatches[commandActiveIndex])}
+  else if(event.key==='Escape'){event.preventDefault();hideCommandMenu()}
+});
