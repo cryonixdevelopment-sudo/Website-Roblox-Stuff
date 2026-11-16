@@ -18,7 +18,7 @@ const toast=document.querySelector('#toast');
 const launcher=document.querySelector('.launcher');
 const viewer=document.querySelector('#viewer');
 const viewerFrameHost=document.querySelector('#viewer-frame-host');
-let viewerFrame=null, scramjetController=null, scramjetConnection=null;
+let viewerFrame=null, viewerScramjetFrame=null, scramjetController=null, scramjetConnection=null;
 const viewerUrl=document.querySelector('#viewer-url');
 const viewerExternal=document.querySelector('#viewer-external');
 const viewerNote=document.querySelector('#viewer-note');
@@ -27,6 +27,7 @@ const proxyAvailable=Boolean(window.$scramjetLoadController&&window.BareMux&&'se
 let proxyReadyPromise=null;
 let viewerUsesProxy=false;
 let viewerHistory=[];
+let viewerHistoryIndex=-1;
 let currentViewerUrl='';
 let toastTimer;
 
@@ -78,7 +79,7 @@ async function prepareProxy(){
   })().catch(error=>{console.error('Scramjet setup failed:',error);proxyReadyPromise=null;viewerNote.textContent='Scramjet initialization failed: '+(error?.message||String(error));return false});
   return proxyReadyPromise;
 }
-function clearEmbeddedFrame(){viewerFrameHost.replaceChildren();viewerFrame=null}
+function clearEmbeddedFrame(){viewerFrameHost.replaceChildren();viewerFrame=null;viewerScramjetFrame=null}
 function openUrl(value){
   const url=normalize(value);
   if(!url)return;
@@ -94,24 +95,37 @@ function openSearch(value){
 }
 let navigationSequence=0;
 async function showInViewer(url,record=true){
-  if(record&&currentViewerUrl!==url)viewerHistory.push(url);
-  currentViewerUrl=url;viewerUrl.textContent=url;launcher.hidden=true;viewer.hidden=false;
+  if(record&&currentViewerUrl!==url){viewerHistory=viewerHistory.slice(0,viewerHistoryIndex+1);viewerHistory.push(url);viewerHistoryIndex=viewerHistory.length-1}
+  currentViewerUrl=url;viewerUrl.value=url;viewer.hidden=false;
+  launcher.hidden=localStorage.getItem(storageKeys.searchLayout)!=='floating';
+  syncViewerButtons();
   document.body.classList.add('viewing');
   const sequence=++navigationSequence;
   viewerNote.textContent='Connecting to the in-page browser…';
   const ready=await prepareProxy();
   if(sequence!==navigationSequence||viewer.hidden)return;
-  viewerUsesProxy=ready;clearEmbeddedFrame();
+  viewerUsesProxy=ready;
   if(!ready){
     if(!viewerNote.textContent.startsWith('Scramjet initialization failed:'))viewerNote.textContent='Scramjet is unavailable. Verify the Node.js deployment, service worker, and Wisp connection.';
     return;
   }
   try{
-    const frame=scramjetController.createFrame();
-    viewerFrame=frame.frame;viewerFrame.id='viewer-frame';viewerFrame.title='Website viewer';
-    viewerFrame.setAttribute('allow','fullscreen; autoplay; clipboard-read; clipboard-write');
-    viewerFrameHost.appendChild(viewerFrame);
-    await frame.go(url);
+    if(!viewerScramjetFrame){
+      viewerScramjetFrame=scramjetController.createFrame();
+      viewerFrame=viewerScramjetFrame.frame;viewerFrame.id='viewer-frame';viewerFrame.title='Website viewer';
+      viewerFrame.setAttribute('allow','fullscreen; autoplay; clipboard-read; clipboard-write');
+      viewerFrameHost.appendChild(viewerFrame);
+      viewerScramjetFrame.addEventListener('urlchange',event=>{
+        const changed=String(event.url||'');
+        if(!/^https?:\/\//i.test(changed)||viewer.hidden)return;
+        if(changed!==currentViewerUrl){
+          viewerHistory=viewerHistory.slice(0,viewerHistoryIndex+1);viewerHistory.push(changed);viewerHistoryIndex=viewerHistory.length-1;currentViewerUrl=changed;
+        }
+        if(document.activeElement!==viewerUrl)viewerUrl.value=changed;
+        syncViewerButtons();
+      });
+    }
+    await viewerScramjetFrame.go(url);
     if(sequence===navigationSequence)viewerNote.textContent='Browsing inside Orvian with Scramjet. Some websites may still limit functionality.';
   }catch(error){
     console.error('Scramjet navigation failed:',error);
@@ -122,7 +136,7 @@ async function showInViewer(url,record=true){
   }
 }
 function closeViewer(){
-  ++navigationSequence;currentViewerUrl='';viewerHistory=[];clearEmbeddedFrame();
+  ++navigationSequence;currentViewerUrl='';viewerHistory=[];viewerHistoryIndex=-1;clearEmbeddedFrame();
   viewer.hidden=true;document.body.classList.remove('viewing');
   if(viewerReturnTarget==='games'){launcher.hidden=true;gamesView.hidden=false;document.body.classList.add('gaming');viewerReturnTarget='home';gamesSearchInput.focus()}
   else{launcher.hidden=false;searchInput.focus()}
@@ -156,16 +170,11 @@ searchForm.addEventListener('submit',event=>{event.preventDefault();openSearch(s
 document.querySelectorAll('.tile[href],.trending[href]').forEach(link=>link.addEventListener('click',event=>{event.preventDefault();if(link.hasAttribute('data-auth-required')&&!authUser){openAuthPrompt();return}openUrl(link.href)}));
 document.querySelector('#viewer-close').addEventListener('click',closeViewer);
 document.querySelector('#viewer-reload').addEventListener('click',()=>{if(currentViewerUrl)showInViewer(currentViewerUrl,false)});
-viewerBack.addEventListener('click',()=>{
-  if(viewerUsesProxy){
-    try{
-      viewerFrame?.contentWindow?.history.back();
-      return;
-    }catch(error){console.warn('In-page history unavailable:',error)}
-  }
-  if(viewerHistory.length<=1){closeViewer();return}
-  viewerHistory.pop();showInViewer(viewerHistory.at(-1),false);
-});
+viewerBack.addEventListener('click',()=>{if(viewerHistoryIndex>0){viewerHistoryIndex--;showInViewer(viewerHistory[viewerHistoryIndex],false)}});
+document.querySelector('#viewer-forward').addEventListener('click',()=>{if(viewerHistoryIndex<viewerHistory.length-1){viewerHistoryIndex++;showInViewer(viewerHistory[viewerHistoryIndex],false)}});
+function syncViewerButtons(){viewerBack.disabled=viewerHistoryIndex<=0;document.querySelector('#viewer-forward').disabled=viewerHistoryIndex>=viewerHistory.length-1}
+document.querySelector('#viewer-address-form').addEventListener('submit',event=>{event.preventDefault();const url=normalize(viewerUrl.value);if(url)showInViewer(url)});
+viewerUrl.addEventListener('focus',()=>viewerUrl.select());
 viewerExternal.addEventListener('click',()=>{if(currentViewerUrl)window.open(currentViewerUrl,'_blank','noopener,noreferrer')});
 document.querySelectorAll('[data-panel]').forEach(button=>button.addEventListener('click',()=>{if(button.hasAttribute('data-auth-required')&&!authUser){openAuthPrompt();return}document.querySelector(`#${button.dataset.panel}`)?.showModal()}));
 document.querySelector('#add-bookmark').addEventListener('click',addLink);
@@ -1086,11 +1095,29 @@ document.addEventListener('keydown',event=>{
 const settingsEntry=document.createElement('button');settingsEntry.type='button';settingsEntry.className='settings-rescue';settingsEntry.textContent='⚙';settingsEntry.setAttribute('aria-label','Settings');settingsEntry.title='Settings (Ctrl+,)';settingsEntry.addEventListener('click',()=>document.querySelector('#settings-dialog').showModal());document.body.append(settingsEntry);
 const searchHome=document.createComment('Home search position');searchForm.before(searchHome);
 function syncSearchPlacement(){
-  if(settingValue('searchLayout')==='floating'){document.body.append(searchForm);searchForm.classList.add('floating-search')}
-  else {searchHome.after(searchForm);searchForm.classList.remove('floating-search')}
+  searchHome.after(searchForm);searchForm.classList.remove('floating-search','search-away');
+  document.body.append(viewer);
+  viewer.classList.toggle('floating-results',settingValue('searchLayout')==='floating');
+  if(!viewer.hidden)launcher.hidden=settingValue('searchLayout')!=='floating';
 }
 document.querySelector('#search-layout-setting').addEventListener('change',syncSearchPlacement);
 syncSearchPlacement();
 new MutationObserver(()=>{searchForm.classList.toggle('search-away',launcher.hidden)}).observe(launcher,{attributes:true,attributeFilter:['hidden']});
 searchInput.autofocus=settingValue('searchFocus')==='true';
 if(settingValue('searchFocus')==='false')searchInput.blur();
+
+document.querySelector('#viewer-maximize').addEventListener('click',()=>viewer.classList.toggle('viewer-maximized'));
+const dragHandle=document.querySelector('#viewer-drag-handle');
+let viewerDrag=null;
+dragHandle.addEventListener('pointerdown',event=>{
+  if(!viewer.classList.contains('floating-results')||viewer.classList.contains('viewer-maximized'))return;
+  const box=viewer.getBoundingClientRect();viewerDrag={x:event.clientX-box.left,y:event.clientY-box.top};dragHandle.setPointerCapture(event.pointerId);viewer.classList.add('viewer-dragging');
+});
+dragHandle.addEventListener('pointermove',event=>{
+  if(!viewerDrag)return;
+  viewer.style.setProperty('--viewer-left',Math.max(0,Math.min(innerWidth-viewer.offsetWidth,event.clientX-viewerDrag.x))+'px');
+  viewer.style.setProperty('--viewer-top',Math.max(0,Math.min(innerHeight-54,event.clientY-viewerDrag.y))+'px');
+  viewer.style.right='auto';viewer.style.bottom='auto';
+});
+function endViewerDrag(){viewerDrag=null;viewer.classList.remove('viewer-dragging')}
+dragHandle.addEventListener('pointerup',endViewerDrag);dragHandle.addEventListener('lostpointercapture',endViewerDrag);
