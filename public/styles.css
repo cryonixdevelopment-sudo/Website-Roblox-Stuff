@@ -1114,3 +1114,20 @@ body.gaming { overflow:hidden; }
 .composer-extras { align-items:center; }
 .member-card.blocked { opacity:.55; }
 @media(max-width:600px){.member-profile-actions{grid-template-columns:1fr}.composer-extras button{min-width:26px}.composer-add::after,.composer-extras button::after{display:none}}
+
+.chat-compose-wrap { position:relative; }
+.mention-menu { position:absolute; left:16px; right:16px; bottom:67px; z-index:45; max-height:290px; overflow:auto; padding:7px; border:1px solid rgba(255,255,255,.09); border-radius:10px; background:#111218; box-shadow:0 18px 50px rgba(0,0,0,.48); }
+.mention-menu[hidden] { display:none; }
+.mention-heading { margin:4px 7px 7px;color:#777b86;font-size:.47rem;font-weight:800;letter-spacing:.08em; }
+.mention-option { width:100%;display:grid;grid-template-columns:34px minmax(0,1fr);align-items:center;gap:9px;padding:7px 8px;border:0;border-radius:7px;background:transparent;color:#dfe1e7;text-align:left;cursor:pointer; }
+.mention-option:hover,.mention-option.active { background:#292b33; }
+.mention-avatar { width:32px;height:32px;display:grid;place-items:center;border-radius:50%;object-fit:cover;background:linear-gradient(145deg,#d6d9e1,#5b606b);color:#101116;font-size:.6rem;font-weight:800; }
+.mention-option strong,.mention-option small { display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap; }.mention-option strong{font-size:.57rem}.mention-option small{margin-top:2px;color:#717681;font-size:.45rem}
+.chat-message-group { align-items:start; }
+.chat-message-group-body { min-width:0; }
+.chat-message-entry { position:relative;min-height:22px;margin:1px -9px;padding:1px 9px;border-radius:5px; }
+.chat-message-entry:hover { background:rgba(255,255,255,.025); }
+.chat-message-entry .chat-message-actions { position:absolute;right:6px;top:-15px;z-index:4; }
+.chat-message-entry.mentions-you { background:linear-gradient(90deg,rgba(211,216,229,.12),rgba(211,216,229,.035));box-shadow:inset 2px 0 #c8cdd8; }
+#composer-mention { font-size:.85rem; }
+@media(max-width:600px){.mention-menu{left:8px;right:8px;bottom:61px}}
