@@ -97,7 +97,7 @@ let navigationSequence=0;
 async function showInViewer(url,record=true){
   if(record&&currentViewerUrl!==url){viewerHistory=viewerHistory.slice(0,viewerHistoryIndex+1);viewerHistory.push(url);viewerHistoryIndex=viewerHistory.length-1}
   currentViewerUrl=url;viewerUrl.value=url;viewer.hidden=false;
-  launcher.hidden=localStorage.getItem(storageKeys.searchLayout)!=='floating';
+  launcher.hidden=true;
   syncViewerButtons();
   document.body.classList.add('viewing');
   const sequence=++navigationSequence;
@@ -1097,27 +1097,12 @@ const searchHome=document.createComment('Home search position');searchForm.befor
 function syncSearchPlacement(){
   searchHome.after(searchForm);searchForm.classList.remove('floating-search','search-away');
   document.body.append(viewer);
-  viewer.classList.toggle('floating-results',settingValue('searchLayout')==='floating');
-  if(!viewer.hidden)launcher.hidden=settingValue('searchLayout')!=='floating';
+  viewer.classList.remove('floating-results','viewer-maximized');
+  viewer.classList.toggle('floating-toolbar',settingValue('searchLayout')==='floating');
+  if(!viewer.hidden)launcher.hidden=true;
 }
 document.querySelector('#search-layout-setting').addEventListener('change',syncSearchPlacement);
 syncSearchPlacement();
 new MutationObserver(()=>{searchForm.classList.toggle('search-away',launcher.hidden)}).observe(launcher,{attributes:true,attributeFilter:['hidden']});
 searchInput.autofocus=settingValue('searchFocus')==='true';
 if(settingValue('searchFocus')==='false')searchInput.blur();
-
-document.querySelector('#viewer-maximize').addEventListener('click',()=>viewer.classList.toggle('viewer-maximized'));
-const dragHandle=document.querySelector('#viewer-drag-handle');
-let viewerDrag=null;
-dragHandle.addEventListener('pointerdown',event=>{
-  if(!viewer.classList.contains('floating-results')||viewer.classList.contains('viewer-maximized'))return;
-  const box=viewer.getBoundingClientRect();viewerDrag={x:event.clientX-box.left,y:event.clientY-box.top};dragHandle.setPointerCapture(event.pointerId);viewer.classList.add('viewer-dragging');
-});
-dragHandle.addEventListener('pointermove',event=>{
-  if(!viewerDrag)return;
-  viewer.style.setProperty('--viewer-left',Math.max(0,Math.min(innerWidth-viewer.offsetWidth,event.clientX-viewerDrag.x))+'px');
-  viewer.style.setProperty('--viewer-top',Math.max(0,Math.min(innerHeight-54,event.clientY-viewerDrag.y))+'px');
-  viewer.style.right='auto';viewer.style.bottom='auto';
-});
-function endViewerDrag(){viewerDrag=null;viewer.classList.remove('viewer-dragging')}
-dragHandle.addEventListener('pointerup',endViewerDrag);dragHandle.addEventListener('lostpointercapture',endViewerDrag);
