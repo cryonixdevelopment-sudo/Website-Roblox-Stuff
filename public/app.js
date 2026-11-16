@@ -861,3 +861,8 @@ document.querySelectorAll('[data-game-url]').forEach(card=>card.addEventListener
   viewerReturnTarget='games';gamesView.hidden=true;document.body.classList.remove('gaming');showInViewer(card.dataset.gameUrl);
 }));
 
+
+
+document.querySelectorAll('.official-game-icon').forEach(image=>image.addEventListener('error',()=>{
+  image.hidden=true;const holder=image.closest('.game-card-icon');if(holder){holder.classList.add('icon-fallback');holder.dataset.fallback=image.dataset.iconFallback||'◈'}
+},{once:true}));
