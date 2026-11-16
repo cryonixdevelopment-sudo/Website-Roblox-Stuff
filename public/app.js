@@ -1,4 +1,4 @@
-const storageKeys={links:'orvian-links',engine:'orvian-search-engine',newTabs:'orvian-new-tabs',reduceMotion:'orvian-reduce-motion',profile:'orvian-profile',theme:'orvian-theme',background:'orvian-background',preferHttps:'orvian-prefer-https',stripTracking:'orvian-strip-tracking',music:'orvian-music',showImages:'orvian-show-images',showTrail:'orvian-show-trail',searchLayout:'orvian-search-layout',searchWidth:'orvian-search-width',searchFocus:'orvian-search-focus',density:'orvian-density',showClock:'orvian-show-clock',showShortcuts:'orvian-show-shortcuts',showDock:'orvian-show-dock',chatCompact:'orvian-chat-compact',chatOffline:'orvian-chat-offline',chatMembers:'orvian-chat-members',chatTime24:'orvian-chat-time24',gamesCompact:'orvian-games-compact',gamesRemember:'orvian-games-remember',fontScale:'orvian-font-scale',highContrast:'orvian-high-contrast',strongFocus:'orvian-strong-focus',lastGameFilter:'orvian-last-game-filter'};
+const storageKeys={links:'orvian-links',engine:'orvian-search-engine',newTabs:'orvian-new-tabs',reduceMotion:'orvian-reduce-motion',profile:'orvian-profile',theme:'orvian-theme',background:'orvian-background',preferHttps:'orvian-prefer-https',stripTracking:'orvian-strip-tracking',music:'orvian-music',showImages:'orvian-show-images',showTrail:'orvian-show-trail',searchLayout:'orvian-search-layout',searchWidth:'orvian-search-width',searchFocus:'orvian-search-focus',density:'orvian-density',showClock:'orvian-show-clock',showShortcuts:'orvian-show-shortcuts',showDock:'orvian-show-dock',chatCompact:'orvian-chat-compact',chatOffline:'orvian-chat-offline',chatMembers:'orvian-chat-members',chatTime24:'orvian-chat-time24',gamesCompact:'orvian-games-compact',gamesRemember:'orvian-games-remember',fontScale:'orvian-font-scale',highContrast:'orvian-high-contrast',strongFocus:'orvian-strong-focus',lastGameFilter:'orvian-last-game-filter',videoEnabled:'orvian-video-enabled',audioVolume:'orvian-audio-volume',clock24:'orvian-clock24',showDate:'orvian-show-date',chatImages:'orvian-chat-images',chatScroll:'orvian-chat-scroll',gamesHero:'orvian-games-hero'};
 const engines={ddg:'https://duckduckgo.com/?q=',google:'https://www.google.com/search?q=',bing:'https://www.bing.com/search?q=',brave:'https://search.brave.com/search?q=',startpage:'https://www.startpage.com/sp/search?query='};
 const searchForm=document.querySelector('#search-form');
 const searchInput=document.querySelector('#search-input');
@@ -209,7 +209,7 @@ const localDateElement=document.querySelector('#local-date');
 function updateLocalClock(){
   const now=new Date();
   // The browser supplies its own locale and IANA time zone automatically.
-  localTimeElement.textContent=new Intl.DateTimeFormat(undefined,{hour:'numeric',minute:'2-digit'}).format(now);
+  localTimeElement.textContent=new Intl.DateTimeFormat(undefined,{hour:'numeric',minute:'2-digit',hour12:localStorage.getItem(storageKeys.clock24)==='true'?false:undefined}).format(now);
   localDateElement.textContent=new Intl.DateTimeFormat(undefined,{weekday:'long',month:'long',day:'numeric'}).format(now);
   localTimeElement.dateTime=now.toISOString();
 }
@@ -357,8 +357,8 @@ function fadeAmbientTo(target,duration,onComplete){
   const startVolume=ambientAudio.volume;
   const startedAt=performance.now();
   const step=now=>{
-    const progress=Math.min(1,(now-startedAt)/duration);
-    ambientAudio.volume=startVolume+(target-startVolume)*(1-Math.pow(1-progress,3));
+    const progress=Math.max(0,Math.min(1,(now-startedAt)/duration));
+    ambientAudio.volume=Math.max(0,Math.min(1,startVolume+(target-startVolume)*(1-Math.pow(1-progress,3))));
     if(progress<1)ambientFadeFrame=requestAnimationFrame(step);
     else if(onComplete)onComplete();
   };
@@ -373,7 +373,7 @@ function playAmbientTrack({restart=false}={}){
   if(restart)ambientAudio.currentTime=0;
   ambientUserPaused=false;
   ambientAudio.volume=0;
-  ambientAudio.play().then(()=>{fadeAmbientTo(.42,1200);updateMusicPlayer()}).catch(bindAmbientUnlock);
+  ambientAudio.play().then(()=>{fadeAmbientTo(Number(localStorage.getItem(storageKeys.audioVolume)??42)/100,1200);updateMusicPlayer()}).catch(bindAmbientUnlock);
 }
 function changeAmbientTrack(direction){
   fadeAmbientTo(0,350,()=>{
@@ -497,6 +497,7 @@ const authMessage=document.querySelector('#auth-message');
 const loginForm=document.querySelector('#login-form');
 const signupForm=document.querySelector('#signup-form');
 function renderAuthState(){
+  renderSettingsProfile();
   authSignedOut.hidden=Boolean(authUser);
   authSignedIn.hidden=!authUser;
   document.querySelectorAll('[data-auth-required]').forEach(element=>element.classList.toggle('auth-locked',!authUser));
@@ -609,7 +610,7 @@ function renderChatMessages(messages){
     item.dataset.search=(group.username+' '+group.messages.map(message=>message.body).join(' ')).toLowerCase();
     item.append(avatar,body);chatMessages.append(item);
   });
-  chatMessages.scrollTop=chatMessages.scrollHeight;
+  if(localStorage.getItem(storageKeys.chatScroll)!=='false')chatMessages.scrollTop=chatMessages.scrollHeight;
 }
 async function editChatMessage(message){
   const next=window.prompt('Edit your message',message.body);
@@ -1029,17 +1030,25 @@ chatInput.addEventListener('keydown',event=>{
 
 
 // Expanded settings and switchable search layout
-const advancedSettings={
+const advancedSettings={videoEnabled:document.querySelector('#video-enabled-setting'),audioVolume:document.querySelector('#audio-volume-setting'),clock24:document.querySelector('#clock24-setting'),showDate:document.querySelector('#date-visible-setting'),chatImages:document.querySelector('#chat-images-setting'),chatScroll:document.querySelector('#chat-scroll-setting'),gamesHero:document.querySelector('#games-hero-setting'),
   searchLayout:document.querySelector('#search-layout-setting'),searchWidth:document.querySelector('#search-width-setting'),searchFocus:document.querySelector('#search-focus-setting'),
   density:document.querySelector('#density-setting'),showClock:document.querySelector('#clock-setting'),showShortcuts:document.querySelector('#shortcuts-setting'),showDock:document.querySelector('#dock-setting'),
   chatCompact:document.querySelector('#chat-compact-setting'),chatOffline:document.querySelector('#chat-offline-setting'),chatMembers:document.querySelector('#chat-members-setting'),chatTime24:document.querySelector('#chat-time-setting'),
   gamesCompact:document.querySelector('#games-compact-setting'),gamesRemember:document.querySelector('#games-remember-setting'),
   fontScale:document.querySelector('#font-scale-setting'),highContrast:document.querySelector('#contrast-setting'),strongFocus:document.querySelector('#focus-outline-setting')
 };
-const advancedDefaults={searchLayout:'standard',searchWidth:'560',searchFocus:'true',density:'comfortable',showClock:'true',showShortcuts:'true',showDock:'true',chatCompact:'false',chatOffline:'true',chatMembers:'true',chatTime24:'false',gamesCompact:'false',gamesRemember:'true',fontScale:'100',highContrast:'false',strongFocus:'false'};
+const advancedDefaults={videoEnabled:'true',audioVolume:'42',clock24:'false',showDate:'true',chatImages:'true',chatScroll:'true',gamesHero:'true',searchLayout:'standard',searchWidth:'560',searchFocus:'true',density:'comfortable',showClock:'true',showShortcuts:'true',showDock:'true',chatCompact:'false',chatOffline:'true',chatMembers:'true',chatTime24:'false',gamesCompact:'false',gamesRemember:'true',fontScale:'100',highContrast:'false',strongFocus:'false'};
 function settingValue(name){return localStorage.getItem(storageKeys[name])??advancedDefaults[name]}
 function applyAdvancedSettings(){
   const root=document.documentElement;
+  root.classList.toggle('hide-date',settingValue('showDate')==='false');
+  root.classList.toggle('hide-chat-images',settingValue('chatImages')==='false');
+  root.classList.toggle('hide-games-hero',settingValue('gamesHero')==='false');
+  root.classList.toggle('video-paused',settingValue('videoEnabled')==='false');
+  const video=document.querySelector('.background-video');
+  if(video){if(settingValue('videoEnabled')==='false'||motionSetting.checked)video.pause();else video.play().catch(()=>{})}
+  if(!ambientAudio.paused)fadeAmbientTo(Number(settingValue('audioVolume'))/100,150);
+  updateLocalClock();
   root.classList.toggle('search-floating',settingValue('searchLayout')==='floating');
   root.style.setProperty('--home-search-width',settingValue('searchWidth')+'px');
   root.classList.toggle('ui-compact',settingValue('density')==='compact');
@@ -1055,3 +1064,33 @@ Object.entries(advancedSettings).forEach(([name,control])=>{
 applyAdvancedSettings();
 if(settingValue('searchFocus')==='true')requestAnimationFrame(()=>{if(!document.querySelector('dialog[open]'))searchInput.focus()});
 document.querySelectorAll('#clear-data,#settings-clear-data').forEach(button=>button.addEventListener('click',()=>setTimeout(()=>{Object.entries(advancedSettings).forEach(([name,control])=>{const value=advancedDefaults[name];if(control.type==='checkbox')control.checked=value==='true';else control.value=value});applyAdvancedSettings()},0)));
+
+function renderSettingsProfile(){
+  const button=document.querySelector('#settings-profile');if(!button)return;
+  button.hidden=!authUser;if(!authUser)return;
+  document.querySelector('#settings-profile-name').textContent=authUser.displayName||authUser.username;
+  document.querySelector('#settings-profile-handle').textContent='@'+authUser.username+' · Edit profile';
+  const avatar=document.querySelector('#settings-profile-avatar');avatar.textContent=authUser.avatar?'':authUser.username[0].toUpperCase();
+  avatar.style.backgroundImage=authUser.avatar?'url("'+authUser.avatar+'")':'';
+}
+document.querySelector('#settings-profile').addEventListener('click',()=>{document.querySelector('#settings-dialog').close();openProfileEditor()});
+document.querySelector('#reset-preferences').addEventListener('click',()=>{
+  if(!confirm('Reset all settings to defaults? Your account, chat profile, messages, and bookmarks will be kept.'))return;
+  const keep=new Set([storageKeys.links,storageKeys.profile]);
+  Object.values(storageKeys).forEach(key=>{if(!keep.has(key))localStorage.removeItem(key)});
+  localStorage.removeItem('orvian-chat-notifications');location.reload();
+});
+document.addEventListener('keydown',event=>{
+  if((event.ctrlKey||event.metaKey)&&event.key===','){event.preventDefault();document.querySelector('#settings-dialog').showModal()}
+});
+const settingsEntry=document.createElement('button');settingsEntry.type='button';settingsEntry.className='settings-rescue';settingsEntry.textContent='⚙';settingsEntry.setAttribute('aria-label','Settings');settingsEntry.title='Settings (Ctrl+,)';settingsEntry.addEventListener('click',()=>document.querySelector('#settings-dialog').showModal());document.body.append(settingsEntry);
+const searchHome=document.createComment('Home search position');searchForm.before(searchHome);
+function syncSearchPlacement(){
+  if(settingValue('searchLayout')==='floating'){document.body.append(searchForm);searchForm.classList.add('floating-search')}
+  else {searchHome.after(searchForm);searchForm.classList.remove('floating-search')}
+}
+document.querySelector('#search-layout-setting').addEventListener('change',syncSearchPlacement);
+syncSearchPlacement();
+new MutationObserver(()=>{searchForm.classList.toggle('search-away',launcher.hidden)}).observe(launcher,{attributes:true,attributeFilter:['hidden']});
+searchInput.autofocus=settingValue('searchFocus')==='true';
+if(settingValue('searchFocus')==='false')searchInput.blur();
