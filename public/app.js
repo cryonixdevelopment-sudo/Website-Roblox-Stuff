@@ -838,7 +838,7 @@ function closeGames(){
 function filterGames(){
   if(!gamesSearchInput)return;
   const query=gamesSearchInput.value.trim().toLowerCase();let shown=0;
-  document.querySelectorAll('#games-grid .game-card').forEach(card=>{
+  document.querySelectorAll('.games-main .game-card[data-game-category]').forEach(card=>{
     const category=(card.dataset.gameCategory||'').toLowerCase();
     const searchable=((card.dataset.gameName||'')+' '+card.textContent+' '+category).toLowerCase();
     const matchesCategory=activeGameFilter==='all'||category.split(/\s+/).includes(activeGameFilter);
