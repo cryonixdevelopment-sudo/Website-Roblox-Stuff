@@ -858,6 +858,10 @@ document.querySelectorAll('.game-filter').forEach(button=>button.addEventListene
   filterGames();
 }));
 document.querySelectorAll('[data-game-url]').forEach(card=>card.addEventListener('click',()=>{
+  if(card.dataset.openExternal==='true'){
+    window.open(card.dataset.gameUrl,'_blank','noopener,noreferrer');
+    return;
+  }
   viewerReturnTarget='games';gamesView.hidden=true;document.body.classList.remove('gaming');showInViewer(card.dataset.gameUrl);
 }));
 
