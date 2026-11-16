@@ -827,28 +827,37 @@ const gamesSearchInput=document.querySelector('#games-search-input');
 let activeGameFilter='all';
 let viewerReturnTarget='home';
 function openGames(){
-  launcher.hidden=true;viewer.hidden=true;chatView.hidden=true;gamesView.hidden=false;
+  if(!gamesView)return;
+  launcher.hidden=true;viewer.hidden=true;if(typeof chatView!=='undefined')chatView.hidden=true;gamesView.hidden=false;
   document.body.classList.remove('viewing','chatting');document.body.classList.add('gaming');
-  gamesSearchInput.focus();
+  requestAnimationFrame(()=>gamesSearchInput?.focus());
 }
 function closeGames(){
-  gamesView.hidden=true;launcher.hidden=false;document.body.classList.remove('gaming');
+  if(!gamesView)return;gamesView.hidden=true;launcher.hidden=false;document.body.classList.remove('gaming');
 }
 function filterGames(){
+  if(!gamesSearchInput)return;
   const query=gamesSearchInput.value.trim().toLowerCase();let shown=0;
   document.querySelectorAll('#games-grid .game-card').forEach(card=>{
-    const category=card.dataset.gameCategory||'';const name=card.dataset.gameName?.toLowerCase()||'';
-    const visible=(activeGameFilter==='all'||category.split(' ').includes(activeGameFilter))&&(!query||name.includes(query));
+    const category=(card.dataset.gameCategory||'').toLowerCase();
+    const searchable=((card.dataset.gameName||'')+' '+card.textContent+' '+category).toLowerCase();
+    const matchesCategory=activeGameFilter==='all'||category.split(/\s+/).includes(activeGameFilter);
+    const visible=matchesCategory&&(!query||searchable.includes(query));
     card.classList.toggle('filtered-out',!visible);if(visible)shown++;
   });
-  document.querySelector('#games-empty').hidden=shown>0;
+  const empty=document.querySelector('#games-empty');if(empty)empty.hidden=shown>0;
 }
-document.querySelector('#games-open').addEventListener('click',openGames);
-document.querySelector('#games-close').addEventListener('click',closeGames);
-gamesSearchInput.addEventListener('input',filterGames);
+document.querySelector('#games-open')?.addEventListener('click',openGames);
+document.querySelector('#games-close')?.addEventListener('click',closeGames);
+gamesSearchInput?.addEventListener('input',filterGames);
+gamesSearchInput?.addEventListener('search',filterGames);
+gamesSearchInput?.addEventListener('keydown',event=>{if(event.key==='Enter'){event.preventDefault();filterGames()}});
 document.querySelectorAll('.game-filter').forEach(button=>button.addEventListener('click',()=>{
-  activeGameFilter=button.dataset.gameFilter;document.querySelectorAll('.game-filter').forEach(item=>item.classList.toggle('active',item===button));filterGames();
+  activeGameFilter=button.dataset.gameFilter||'all';
+  document.querySelectorAll('.game-filter').forEach(item=>item.classList.toggle('active',item===button));
+  filterGames();
 }));
 document.querySelectorAll('[data-game-url]').forEach(card=>card.addEventListener('click',()=>{
   viewerReturnTarget='games';gamesView.hidden=true;document.body.classList.remove('gaming');showInViewer(card.dataset.gameUrl);
 }));
+
