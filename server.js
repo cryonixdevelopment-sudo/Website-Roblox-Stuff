@@ -274,6 +274,25 @@ app.delete('/api/chat/messages/:id',requireAccount,async(req,res)=>{
 });
 
 
+const gameIconSources=new Map([["lichess","https://lichess1.org/assets/logo/lichess-favicon-32.png"],["tetrio","https://tetr.io/res/favicon.ico"],["skribbl","https://skribbl.io/favicon.png"],["agar","https://agar.io/favicon.ico"],["slither","https://slither.io/favicon.ico"],["shellshock","https://shellshock.io/favicon.ico"],["jstris","https://jstris.jezevec10.com/favicon.ico"],["alchemy","https://littlealchemy2.com/favicon.ico"],["quickdraw","https://quickdraw.withgoogle.com/favicon.ico"],["minesweeper","https://minesweeper.online/favicon.ico"],["cardgames","https://cardgames.io/favicon.ico"],["neal","https://neal.fun/favicons/favicon.ico"],["chess","https://www.chess.com/bundles/web/favicons/favicon-32x32.png"],["geoguessr","https://www.geoguessr.com/favicon.ico"],["itch","https://itch.io/favicon.ico"],["poki","https://poki.com/favicon.ico"],["crazygames","https://www.crazygames.com/favicon.ico"],["newgrounds","https://www.newgrounds.com/favicon.ico"],["gamesnacks","https://gamesnacks.com/favicon.ico"],["coolmath","https://www.coolmathgames.com/themes/custom/coolmath/favicon.ico"],["kongregate","https://www.kongregate.com/favicon.ico"]]);
+app.get('/api/game-icon/:key',async(req,res)=>{
+  const source=gameIconSources.get(String(req.params.key||''));
+  if(!source)return res.status(404).end();
+  try{
+    const upstream=await fetch(source,{redirect:'follow',headers:{'User-Agent':'Mozilla/5.0 Orvian/1.0','Accept':'image/avif,image/webp,image/png,image/svg+xml,image/*;q=0.8,*/*;q=0.5'},signal:AbortSignal.timeout(8000)});
+    if(!upstream.ok)throw new Error('Icon source returned '+upstream.status);
+    const type=String(upstream.headers.get('content-type')||'').split(';')[0];
+    if(!type.startsWith('image/'))throw new Error('Icon source did not return an image');
+    const bytes=Buffer.from(await upstream.arrayBuffer());
+    if(!bytes.length||bytes.length>524288)throw new Error('Icon response was empty or too large');
+    res.setHeader('Content-Type',type);res.setHeader('Cache-Control','public,max-age=86400,stale-while-revalidate=604800');
+    return res.send(bytes);
+  }catch(error){
+    console.warn('Game icon failed:',req.params.key,error.message);
+    return res.status(404).end();
+  }
+});
+
 app.get('/health',(_req,res)=>{
   res.setHeader('Cache-Control','no-store');
   res.json({status:'ok',proxy:'scramjet',accounts:Boolean(authPool),uptimeSeconds:Math.floor(process.uptime())});
