@@ -91,18 +91,26 @@
           </div>
           <label class="channel-search"><span aria-hidden="true">⌕</span><input id="channel-filter" type="search" placeholder="Find a conversation" aria-label="Find a conversation" /></label>
           <nav class="chat-channels" aria-label="Chat channels">
+            <section class="channel-category dm-category">
+              <h3><button class="category-toggle" type="button" aria-expanded="true"><span class="category-label">Messages</span><span class="category-arrow">⌄</span></button></h3>
+              <div id="dm-channels"></div>
+            </section>
+            <section class="channel-category dm-category">
+              <h3><button class="category-toggle" type="button" aria-expanded="true"><span class="category-label">Messages</span><span class="category-arrow">⌄</span></button></h3>
+              <div id="dm-channel-list" class="dm-channel-list"><p class="chat-empty-category">No conversations yet</p></div>
+            </section>
             <section class="channel-category">
-              <h3><button class="category-toggle" type="button" aria-expanded="true"><span>⌄</span> Importants</button></h3>
+              <h3><button class="category-toggle" type="button" aria-expanded="true"><span class="category-label">Importants</span><span class="category-arrow">⌄</span></button></h3>
               <button class="chat-channel" type="button" data-channel="announcements"><b>#</b><span>announcements</span><i>Official</i></button>
               <button class="chat-channel" type="button" data-channel="rules"><b>#</b><span>rules</span></button>
             </section>
             <section class="channel-category">
-              <h3><button class="category-toggle" type="button" aria-expanded="true"><span>⌄</span> Community</button></h3>
+              <h3><button class="category-toggle" type="button" aria-expanded="true"><span class="category-label">Community</span><span class="category-arrow">⌄</span></button></h3>
               <button class="chat-channel active" type="button" data-channel="general"><b>#</b><span>general</span></button>
               <button class="chat-channel" type="button" data-channel="introductions"><b>#</b><span>introductions</span></button>
             </section>
             <section class="channel-category misc-category">
-              <h3><button class="category-toggle" type="button" aria-expanded="true"><span>⌄</span> MISC</button></h3>
+              <h3><button class="category-toggle" type="button" aria-expanded="true"><span class="category-label">MISC</span><span class="category-arrow">⌄</span></button></h3>
               <p class="chat-empty-category">No channels yet</p>
             </section>
           </nav>
@@ -123,7 +131,7 @@
           <div class="chat-content">
             <div id="chat-messages" class="chat-messages" aria-live="polite"></div>
             <div class="chat-compose-wrap">
-              <form id="chat-form" class="chat-composer"><button id="composer-add" class="composer-add" type="button" aria-label="Add image" title="Add image">＋</button><input id="chat-attachment-input" type="file" accept="image/png,image/jpeg,image/webp,image/gif" hidden /><input id="chat-input" maxlength="1000" autocomplete="off" placeholder="Message #general" /><div class="composer-extras"><button id="composer-gif" type="button" title="Add GIF by URL">GIF</button><button id="composer-emoji" type="button" title="Add emoji">☺</button></div><button class="composer-send" type="submit">Send</button></form><div id="chat-attachment-preview" class="chat-attachment-preview" hidden></div>
+              <form id="chat-form" class="chat-composer"><button id="composer-add" class="composer-add" type="button" aria-label="Upload Image or GIF" data-tooltip="Upload Image or GIF">＋</button><input id="chat-attachment-input" type="file" accept="image/png,image/jpeg,image/webp,image/gif" hidden /><input id="chat-input" maxlength="1000" autocomplete="off" placeholder="Message #general" /><div class="composer-extras"><button id="composer-gif" type="button" aria-label="Add GIF by URL" data-tooltip="Add GIF by URL">GIF</button><button id="composer-emoji" type="button" aria-label="Add emoji" data-tooltip="Emoji">☺</button></div><button class="composer-send" type="submit">Send</button></form><div id="chat-attachment-preview" class="chat-attachment-preview" hidden></div>
               <p id="chat-status" class="chat-status" role="status"></p>
             </div>
           </div>
@@ -289,7 +297,7 @@
       <p id="member-profile-username" class="member-profile-username">@member</p>
       <span id="member-profile-role" class="member-profile-role">Member</span>
       <p id="member-profile-bio" class="member-profile-bio">No bio yet.</p>
-      <div class="member-profile-presence"><i id="member-profile-dot"></i><span id="member-profile-status">Offline</span></div>
+      <div class="member-profile-presence"><i id="member-profile-dot"></i><span id="member-profile-status">Offline</span></div><div id="member-profile-actions" class="member-profile-actions"><button id="member-mention" type="button">Mention</button><button id="member-message" type="button">Message</button><button id="member-block" class="danger" type="button">Block</button></div>
     </dialog>
     <dialog id="profile-dialog" class="profile-dialog">
       <form method="dialog"><button class="close" aria-label="Close">×</button></form>
