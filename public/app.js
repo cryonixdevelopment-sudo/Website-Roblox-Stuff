@@ -2,6 +2,7 @@ const storageKeys={links:'orvian-links',engine:'orvian-search-engine',newTabs:'o
 const engines={ddg:'https://duckduckgo.com/?q=',google:'https://www.google.com/search?q=',bing:'https://www.bing.com/search?q=',brave:'https://search.brave.com/search?q=',startpage:'https://www.startpage.com/sp/search?query='};
 const searchForm=document.querySelector('#search-form');
 const searchInput=document.querySelector('#search-input');
+const searchProvider=document.querySelector('#search-provider');
 const searchEngine=document.querySelector('#search-engine');
 const newTabSetting=document.querySelector('#new-tab-setting');
 const motionSetting=document.querySelector('#motion-setting');
@@ -194,7 +195,11 @@ document.documentElement.dataset.theme=themeSetting.value;
 document.documentElement.classList.toggle('images-disabled',!imagesSetting.checked);
 document.documentElement.classList.toggle('trail-disabled',!trailSetting.checked);
 document.documentElement.style.setProperty('--background-opacity',String(Number(backgroundSetting.value)/100));
-searchEngine.addEventListener('change',()=>localStorage.setItem(storageKeys.engine,searchEngine.value));
+function syncSearchProvider(){
+  searchProvider.textContent=searchEngine.options[searchEngine.selectedIndex]?.text||'Search';
+}
+syncSearchProvider();
+searchEngine.addEventListener('change',()=>{localStorage.setItem(storageKeys.engine,searchEngine.value);syncSearchProvider()});
 newTabSetting.addEventListener('change',()=>localStorage.setItem(storageKeys.newTabs,String(newTabSetting.checked)));
 motionSetting.addEventListener('change',()=>{localStorage.setItem(storageKeys.reduceMotion,String(motionSetting.checked));document.documentElement.classList.toggle('reduce-motion',motionSetting.checked);syncSilverTrail()});
 themeSetting.addEventListener('change',()=>{localStorage.setItem(storageKeys.theme,themeSetting.value);document.documentElement.dataset.theme=themeSetting.value});
@@ -207,7 +212,7 @@ musicSetting.addEventListener('change',()=>{localStorage.setItem(storageKeys.mus
 document.querySelectorAll('.settings-tab').forEach(tab=>tab.addEventListener('click',()=>{document.querySelectorAll('.settings-tab').forEach(item=>item.classList.toggle('active',item===tab));document.querySelectorAll('.settings-panel').forEach(panel=>panel.classList.toggle('active',panel.dataset.settingsPanel===tab.dataset.settingsTab))}));
 function clearLocalData(){
   if(!window.confirm('Clear Orvian bookmarks, settings, and profile from this browser?'))return;
-  Object.values(storageKeys).forEach(key=>localStorage.removeItem(key));renderLinks();searchEngine.value='ddg';newTabSetting.checked=false;motionSetting.checked=false;themeSetting.value='midnight';backgroundSetting.value='100';httpsSetting.checked=false;trackingSetting.checked=false;imagesSetting.checked=true;trailSetting.checked=true;musicSetting.checked=true;document.documentElement.classList.remove('reduce-motion');document.documentElement.dataset.theme='midnight';document.documentElement.classList.remove('images-disabled','trail-disabled');document.documentElement.style.setProperty('--background-opacity','1');syncAmbientAudio();notify('Local data cleared');
+  Object.values(storageKeys).forEach(key=>localStorage.removeItem(key));renderLinks();searchEngine.value='ddg';syncSearchProvider();newTabSetting.checked=false;motionSetting.checked=false;themeSetting.value='midnight';backgroundSetting.value='100';httpsSetting.checked=false;trackingSetting.checked=false;imagesSetting.checked=true;trailSetting.checked=true;musicSetting.checked=true;document.documentElement.classList.remove('reduce-motion');document.documentElement.dataset.theme='midnight';document.documentElement.classList.remove('images-disabled','trail-disabled');document.documentElement.style.setProperty('--background-opacity','1');syncAmbientAudio();notify('Local data cleared');
 }
 document.querySelector('#clear-data').addEventListener('click',clearLocalData);
 document.querySelector('#settings-clear-data').addEventListener('click',clearLocalData);
@@ -460,6 +465,17 @@ document.addEventListener('visibilitychange',()=>{
 syncAmbientAudio();
 updateMusicPlayer();
 requestAnimationFrame(()=>requestAnimationFrame(()=>document.body.classList.add('page-ready')));
+
+// A restrained cursor-lit field gives the home screen depth without adding another panel.
+let homeLightFrame=0;
+addEventListener('pointermove',event=>{
+  if(!matchMedia('(pointer:fine)').matches||!viewer.hidden)return;
+  cancelAnimationFrame(homeLightFrame);
+  homeLightFrame=requestAnimationFrame(()=>{
+    document.documentElement.style.setProperty('--home-light-x',`${event.clientX}px`);
+    document.documentElement.style.setProperty('--home-light-y',`${event.clientY}px`);
+  });
+},{passive:true});
 
 
 // Real-time Web Audio spectrum analyzer

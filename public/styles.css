@@ -1280,6 +1280,12 @@ body::before {
     radial-gradient(circle at 50% 34%,rgba(164,154,187,.12),transparent 31%),
     linear-gradient(180deg,rgba(4,4,7,.46),rgba(4,4,7,.76) 72%,rgba(3,3,5,.9));
 }
+body::after {
+  content:"";position:fixed;inset:0;z-index:0;pointer-events:none;
+  background:radial-gradient(420px circle at var(--home-light-x,50vw) var(--home-light-y,38vh),rgba(215,208,225,.07),transparent 68%);
+  opacity:.9;transition:opacity .35s ease;
+}
+.viewing::after,.chatting::after,.gaming::after { opacity:0; }
 .background-video { filter:saturate(.72) contrast(1.04); transform:scale(1.015); }
 .dashboard { padding:clamp(18px,4vw,52px) 24px 92px; }
 .launcher {
@@ -1319,6 +1325,11 @@ body::before {
   background:rgba(255,255,255,.045);box-shadow:inset 0 1px rgba(255,255,255,.045);color:#8f8995;
   font:600 .78rem/1 "Montserrat",sans-serif;
 }
+.search-provider {
+  flex:0 0 auto;padding:5px 8px;border-left:1px solid rgba(229,224,236,.11);color:#817b87;
+  font-size:.75rem;font-weight:600;letter-spacing:.015em;white-space:nowrap;
+}
+.search:focus-within .search-provider { color:#bbb5c1; }
 .search:focus-within .search-shortcut { border-color:rgba(229,224,236,.3);color:#d7d2dc; }
 .local-clock { position:absolute;top:25px;right:31px;align-items:flex-end;margin:0; }
 .local-clock-time { font-size:1rem;font-weight:600;letter-spacing:-.02em;color:#d7d3db; }
@@ -1334,18 +1345,25 @@ body::before {
   color:#918a97;font-size:.75rem;font-weight:700;letter-spacing:.13em;text-transform:uppercase;
 }
 .tile {
-  width:auto;height:82px;min-width:0;gap:8px;border-color:rgba(235,230,241,.055);border-radius:16px;
+  position:relative;overflow:hidden;width:auto;height:82px;min-width:0;gap:8px;border-color:rgba(235,230,241,.055);border-radius:16px;
   background:linear-gradient(145deg,rgba(255,255,255,.048),rgba(255,255,255,.014));
   box-shadow:inset 0 1px rgba(255,255,255,.035);
   color:#e2dee6;font-size:.875rem;
   transition:transform .2s cubic-bezier(.2,.8,.2,1),background .2s ease,border-color .2s ease,box-shadow .2s ease;
 }
+.tile::after {
+  content:"";position:absolute;inset:-60% -90%;pointer-events:none;
+  background:linear-gradient(110deg,transparent 42%,rgba(255,255,255,.12) 50%,transparent 58%);
+  translate:-45% 0;opacity:0;transition:translate .55s cubic-bezier(.2,.75,.2,1),opacity .2s ease;
+}
+.tile:hover::after,.tile:focus-visible::after { translate:45% 0;opacity:.75; }
 .tile:hover,.tile:focus-visible {
   transform:translateY(-4px);border-color:rgba(225,217,236,.23);
   background:linear-gradient(145deg,rgba(255,255,255,.105),rgba(255,255,255,.035));
   box-shadow:0 13px 28px rgba(0,0,0,.2),inset 0 1px rgba(255,255,255,.08);
 }
 .tile-icon { transition:transform .2s cubic-bezier(.2,.8,.2,1),filter .2s ease; }
+.tile>span { position:relative;z-index:1; }
 .tile:hover .tile-icon,.tile:focus-visible .tile-icon { transform:scale(1.07);filter:brightness(1.12); }
 .pixel-icon,.chrome-tile-icon,.custom-brand-icon { width:44px;height:40px; }
 .shortcut-divider { width:100%;background:linear-gradient(90deg,transparent,rgba(218,211,226,.12) 18%,rgba(218,211,226,.12) 82%,transparent); }
@@ -1372,7 +1390,7 @@ body::before {
   .home-kicker { font-size:.68rem; }.launcher>h1{font-size:4rem}.home-intro{margin:15px 0 22px;font-size:.88rem}
   .local-clock { top:22px;right:20px }.local-clock-date{display:none}
   .launcher .search { width:100%!important;height:54px; }
-  .search-shortcut { display:none; }
+  .search-shortcut,.search-provider { display:none; }
   .shortcut-sections { max-height:none;overflow:visible;padding-inline:0; }
   .shortcut-grid,.brand-shortcuts,.entertainment-shortcuts { grid-template-columns:repeat(3,minmax(0,1fr));gap:8px; }
   .tile { width:auto;height:78px; }.shortcut-divider{margin:1px 0}
@@ -1382,7 +1400,7 @@ body::before {
   .launcher { padding-inline:12px }.launcher>h1{font-size:3.45rem}.local-clock{right:15px}.local-clock-time{font-size:.85rem}
   .tile{height:72px;font-size:.82rem}.pixel-icon,.chrome-tile-icon,.custom-brand-icon{width:39px;height:36px}
 }
-@media (prefers-reduced-motion:reduce) { .background-video{transform:none}.tile:hover{transform:none} }
+@media (prefers-reduced-motion:reduce) { .background-video{transform:none}.tile:hover{transform:none}.tile::after{display:none}body::after{display:none} }
 
 /* Compact hi-fi player: one realistic control surface that stays clear of the main interface. */
 #music-player.music-player {
