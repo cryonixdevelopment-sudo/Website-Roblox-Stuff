@@ -282,6 +282,7 @@ function stopSilverTrail(){
   if(!silverTrailController)return;
   cancelAnimationFrame(silverTrailController.animationFrame);
   removeEventListener('pointermove',silverTrailController.onPointerMove);
+  document.removeEventListener('mouseleave',silverTrailController.onPointerLeave);
   removeEventListener('resize',silverTrailController.onResize);
   silverTrailController.canvas.remove();
   silverTrailController=null;
@@ -293,7 +294,7 @@ function startSilverTrail(){
   document.body.appendChild(canvas);
   const context=canvas.getContext('2d');
   const points=[];
-  const controller={canvas,context,points,animationFrame:0,onPointerMove:null,onResize:null};
+  const controller={canvas,context,points,lastPoint:null,animationFrame:0,onPointerMove:null,onPointerLeave:null,onResize:null};
   silverTrailController=controller;
   controller.onResize=()=>{
     const ratio=Math.min(window.devicePixelRatio||1,1.5);
@@ -302,28 +303,51 @@ function startSilverTrail(){
     context.setTransform(ratio,0,0,ratio,0,0);
   };
   controller.onPointerMove=event=>{
-    points.push({x:event.clientX,y:event.clientY,life:1});
-    if(points.length>22)points.shift();
+    const next={x:event.clientX,y:event.clientY};
+    const now=performance.now();
+    if(!controller.lastPoint){points.push({...next,born:now});controller.lastPoint=next;return}
+    const dx=next.x-controller.lastPoint.x,dy=next.y-controller.lastPoint.y;
+    const distance=Math.hypot(dx,dy);
+    const steps=Math.min(24,Math.max(1,Math.ceil(distance/4)));
+    for(let step=1;step<=steps;step++){
+      const progress=step/steps;
+      points.push({x:controller.lastPoint.x+dx*progress,y:controller.lastPoint.y+dy*progress,born:now});
+    }
+    controller.lastPoint=next;
+    if(points.length>110)points.splice(0,points.length-110);
   };
+  controller.onPointerLeave=()=>{controller.lastPoint=null;points.length=0};
   controller.onResize();
   addEventListener('resize',controller.onResize,{passive:true});
   addEventListener('pointermove',controller.onPointerMove,{passive:true});
+  document.addEventListener('mouseleave',controller.onPointerLeave,{passive:true});
   const draw=()=>{
     if(silverTrailController!==controller)return;
     context.clearRect(0,0,innerWidth,innerHeight);
-    context.shadowBlur=0;
+    const now=performance.now();
+    while(points[0]&&now-points[0].born>430)points.shift();
+    context.globalCompositeOperation='lighter';
     for(let index=1;index<points.length;index++){
       const previous=points[index-1],point=points[index];
+      const life=Math.max(0,1-(now-point.born)/430);
+      const taper=Math.min(1,index/8);
+      const alpha=life*taper;
       context.beginPath();
       context.moveTo(previous.x,previous.y);
       context.lineTo(point.x,point.y);
       context.lineCap='round';
-      context.lineWidth=.8+point.life*2.6;
-      context.strokeStyle=`rgba(222,225,233,${point.life*.5})`;
+      context.lineJoin='round';
+      context.lineWidth=1.1+alpha*3;
+      context.shadowBlur=9;
+      context.shadowColor=`rgba(218,222,232,${alpha*.42})`;
+      context.strokeStyle=`rgba(226,229,237,${alpha*.34})`;
+      context.stroke();
+      context.shadowBlur=0;
+      context.lineWidth=.65+alpha*.8;
+      context.strokeStyle=`rgba(250,250,252,${alpha*.68})`;
       context.stroke();
     }
-    points.forEach(point=>{point.life-=.055});
-    while(points[0]&&points[0].life<=0)points.shift();
+    context.globalCompositeOperation='source-over';
     controller.animationFrame=requestAnimationFrame(draw);
   };
   controller.animationFrame=requestAnimationFrame(draw);
@@ -465,18 +489,6 @@ document.addEventListener('visibilitychange',()=>{
 syncAmbientAudio();
 updateMusicPlayer();
 requestAnimationFrame(()=>requestAnimationFrame(()=>document.body.classList.add('page-ready')));
-
-// A restrained cursor-lit field gives the home screen depth without adding another panel.
-let homeLightFrame=0;
-addEventListener('pointermove',event=>{
-  if(!matchMedia('(pointer:fine)').matches||!viewer.hidden)return;
-  cancelAnimationFrame(homeLightFrame);
-  homeLightFrame=requestAnimationFrame(()=>{
-    document.documentElement.style.setProperty('--home-light-x',`${event.clientX}px`);
-    document.documentElement.style.setProperty('--home-light-y',`${event.clientY}px`);
-  });
-},{passive:true});
-
 
 // Real-time Web Audio spectrum analyzer
 let musicAudioContext=null;

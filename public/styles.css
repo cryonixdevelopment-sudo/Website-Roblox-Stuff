@@ -1280,12 +1280,6 @@ body::before {
     radial-gradient(circle at 50% 34%,rgba(164,154,187,.12),transparent 31%),
     linear-gradient(180deg,rgba(4,4,7,.46),rgba(4,4,7,.76) 72%,rgba(3,3,5,.9));
 }
-body::after {
-  content:"";position:fixed;inset:0;z-index:0;pointer-events:none;
-  background:radial-gradient(420px circle at var(--home-light-x,50vw) var(--home-light-y,38vh),rgba(215,208,225,.07),transparent 68%);
-  opacity:.9;transition:opacity .35s ease;
-}
-.viewing::after,.chatting::after,.gaming::after { opacity:0; }
 .background-video { filter:saturate(.72) contrast(1.04); transform:scale(1.015); }
 .dashboard { padding:clamp(18px,4vw,52px) 24px 92px; }
 .launcher {
@@ -1312,10 +1306,19 @@ body::after {
 }
 .home-intro { margin:18px 0 25px;color:#b4afb9;font-size:.95rem;line-height:1.45;letter-spacing:.005em; }
 .launcher .search {
-  height:58px;margin:0 0 18px;padding:0 20px;border-color:rgba(224,219,232,.17);border-radius:17px;
+  position:relative;overflow:hidden;height:58px;margin:0 0 18px;padding:0 20px;border-color:rgba(224,219,232,.17);border-radius:17px;
   background:rgba(10,10,15,.68);box-shadow:inset 0 1px rgba(255,255,255,.045),0 16px 38px rgba(0,0,0,.25);
   transition:border-color .2s ease,box-shadow .2s ease,background .2s ease,transform .2s ease;
 }
+.launcher .search::after {
+  content:"";position:absolute;z-index:0;inset:-70% -35%;pointer-events:none;
+  background:linear-gradient(105deg,transparent 38%,rgba(255,255,255,.035) 44%,rgba(255,255,255,.22) 50%,rgba(255,255,255,.035) 56%,transparent 62%);
+  translate:-72% 0;opacity:0;
+}
+.launcher .search:hover::after {
+  translate:72% 0;opacity:1;transition:translate .78s cubic-bezier(.2,.7,.2,1),opacity .18s ease;
+}
+.launcher .search>* { position:relative;z-index:1; }
 .launcher .search:hover { border-color:rgba(224,219,232,.29);background:rgba(13,13,19,.78); }
 .launcher .search:focus-within { transform:translateY(-1px);border-color:rgba(225,220,235,.52);background:rgba(14,14,20,.88); }
 .launcher .search svg { width:20px;height:20px;stroke:#a39da9; }
@@ -1351,19 +1354,12 @@ body::after {
   color:#e2dee6;font-size:.875rem;
   transition:transform .2s cubic-bezier(.2,.8,.2,1),background .2s ease,border-color .2s ease,box-shadow .2s ease;
 }
-.tile::after {
-  content:"";position:absolute;inset:-60% -90%;pointer-events:none;
-  background:linear-gradient(110deg,transparent 42%,rgba(255,255,255,.12) 50%,transparent 58%);
-  translate:-45% 0;opacity:0;transition:translate .55s cubic-bezier(.2,.75,.2,1),opacity .2s ease;
-}
-.tile:hover::after,.tile:focus-visible::after { translate:45% 0;opacity:.75; }
 .tile:hover,.tile:focus-visible {
   transform:translateY(-4px);border-color:rgba(225,217,236,.23);
   background:linear-gradient(145deg,rgba(255,255,255,.105),rgba(255,255,255,.035));
   box-shadow:0 13px 28px rgba(0,0,0,.2),inset 0 1px rgba(255,255,255,.08);
 }
 .tile-icon { transition:transform .2s cubic-bezier(.2,.8,.2,1),filter .2s ease; }
-.tile>span { position:relative;z-index:1; }
 .tile:hover .tile-icon,.tile:focus-visible .tile-icon { transform:scale(1.07);filter:brightness(1.12); }
 .pixel-icon,.chrome-tile-icon,.custom-brand-icon { width:44px;height:40px; }
 .shortcut-divider { width:100%;background:linear-gradient(90deg,transparent,rgba(218,211,226,.12) 18%,rgba(218,211,226,.12) 82%,transparent); }
@@ -1400,7 +1396,7 @@ body::after {
   .launcher { padding-inline:12px }.launcher>h1{font-size:3.45rem}.local-clock{right:15px}.local-clock-time{font-size:.85rem}
   .tile{height:72px;font-size:.82rem}.pixel-icon,.chrome-tile-icon,.custom-brand-icon{width:39px;height:36px}
 }
-@media (prefers-reduced-motion:reduce) { .background-video{transform:none}.tile:hover{transform:none}.tile::after{display:none}body::after{display:none} }
+@media (prefers-reduced-motion:reduce) { .background-video{transform:none}.tile:hover{transform:none}.launcher .search::after{display:none} }
 
 /* Compact hi-fi player: one realistic control surface that stays clear of the main interface. */
 #music-player.music-player {
