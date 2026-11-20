@@ -188,7 +188,7 @@ backgroundSetting.value=localStorage.getItem(storageKeys.background)||'100';
 httpsSetting.checked=localStorage.getItem(storageKeys.preferHttps)==='true';
 trackingSetting.checked=localStorage.getItem(storageKeys.stripTracking)==='true';
 imagesSetting.checked=localStorage.getItem(storageKeys.showImages)!=='false';
-trailSetting.checked=localStorage.getItem(storageKeys.showTrail)!=='false';
+trailSetting.checked=localStorage.getItem(storageKeys.showTrail)==='true';
 musicSetting.checked=localStorage.getItem(storageKeys.music)!=='false';
 document.documentElement.classList.toggle('reduce-motion',motionSetting.checked);
 document.documentElement.dataset.theme=themeSetting.value;
@@ -212,7 +212,7 @@ musicSetting.addEventListener('change',()=>{localStorage.setItem(storageKeys.mus
 document.querySelectorAll('.settings-tab').forEach(tab=>tab.addEventListener('click',()=>{document.querySelectorAll('.settings-tab').forEach(item=>item.classList.toggle('active',item===tab));document.querySelectorAll('.settings-panel').forEach(panel=>panel.classList.toggle('active',panel.dataset.settingsPanel===tab.dataset.settingsTab))}));
 function clearLocalData(){
   if(!window.confirm('Clear Orvian bookmarks, settings, and profile from this browser?'))return;
-  Object.values(storageKeys).forEach(key=>localStorage.removeItem(key));renderLinks();searchEngine.value='ddg';syncSearchProvider();newTabSetting.checked=false;motionSetting.checked=false;themeSetting.value='midnight';backgroundSetting.value='100';httpsSetting.checked=false;trackingSetting.checked=false;imagesSetting.checked=true;trailSetting.checked=true;musicSetting.checked=true;document.documentElement.classList.remove('reduce-motion');document.documentElement.dataset.theme='midnight';document.documentElement.classList.remove('images-disabled','trail-disabled');document.documentElement.style.setProperty('--background-opacity','1');syncAmbientAudio();notify('Local data cleared');
+  Object.values(storageKeys).forEach(key=>localStorage.removeItem(key));renderLinks();searchEngine.value='ddg';syncSearchProvider();newTabSetting.checked=false;motionSetting.checked=false;themeSetting.value='midnight';backgroundSetting.value='100';httpsSetting.checked=false;trackingSetting.checked=false;imagesSetting.checked=true;trailSetting.checked=false;musicSetting.checked=true;document.documentElement.classList.remove('reduce-motion');document.documentElement.dataset.theme='midnight';document.documentElement.classList.remove('images-disabled');document.documentElement.classList.add('trail-disabled');document.documentElement.style.setProperty('--background-opacity','1');syncSilverTrail();syncAmbientAudio();notify('Local data cleared');
 }
 document.querySelector('#clear-data').addEventListener('click',clearLocalData);
 document.querySelector('#settings-clear-data').addEventListener('click',clearLocalData);
@@ -276,81 +276,36 @@ rotateSidePosters();
 if(!window.matchMedia('(prefers-reduced-motion: reduce)').matches)setInterval(rotateSidePosters,9000);
 
 
-// Smooth silver pointer trail
+// Lightweight silver pointer follower. One composited element replaces the canvas renderer.
 let silverTrailController=null;
 function stopSilverTrail(){
   if(!silverTrailController)return;
-  cancelAnimationFrame(silverTrailController.animationFrame);
+  cancelAnimationFrame(silverTrailController.frame);
   removeEventListener('pointermove',silverTrailController.onPointerMove);
   document.removeEventListener('mouseleave',silverTrailController.onPointerLeave);
-  removeEventListener('resize',silverTrailController.onResize);
-  silverTrailController.canvas.remove();
+  silverTrailController.element.remove();
   silverTrailController=null;
 }
 function startSilverTrail(){
   if(silverTrailController||!window.matchMedia('(pointer:fine)').matches||window.matchMedia('(prefers-reduced-motion:reduce)').matches)return;
-  const canvas=document.createElement('canvas');
-  canvas.id='silver-trail-canvas';
-  document.body.appendChild(canvas);
-  const context=canvas.getContext('2d');
-  const points=[];
-  const controller={canvas,context,points,lastPoint:null,animationFrame:0,onPointerMove:null,onPointerLeave:null,onResize:null};
+  const element=document.createElement('i');
+  element.id='silver-trail-dot';
+  element.setAttribute('aria-hidden','true');
+  document.body.appendChild(element);
+  const controller={element,frame:0,x:-100,y:-100,onPointerMove:null,onPointerLeave:null};
   silverTrailController=controller;
-  controller.onResize=()=>{
-    const ratio=Math.min(window.devicePixelRatio||1,1.5);
-    canvas.width=Math.round(innerWidth*ratio);
-    canvas.height=Math.round(innerHeight*ratio);
-    context.setTransform(ratio,0,0,ratio,0,0);
-  };
   controller.onPointerMove=event=>{
-    const next={x:event.clientX,y:event.clientY};
-    const now=performance.now();
-    if(!controller.lastPoint){points.push({...next,born:now});controller.lastPoint=next;return}
-    const dx=next.x-controller.lastPoint.x,dy=next.y-controller.lastPoint.y;
-    const distance=Math.hypot(dx,dy);
-    const steps=Math.min(24,Math.max(1,Math.ceil(distance/4)));
-    for(let step=1;step<=steps;step++){
-      const progress=step/steps;
-      points.push({x:controller.lastPoint.x+dx*progress,y:controller.lastPoint.y+dy*progress,born:now});
-    }
-    controller.lastPoint=next;
-    if(points.length>110)points.splice(0,points.length-110);
+    controller.x=event.clientX;controller.y=event.clientY;
+    if(controller.frame)return;
+    controller.frame=requestAnimationFrame(()=>{
+      controller.frame=0;
+      element.style.transform=`translate3d(${controller.x}px,${controller.y}px,0)`;
+      element.classList.add('active');
+    });
   };
-  controller.onPointerLeave=()=>{controller.lastPoint=null;points.length=0};
-  controller.onResize();
-  addEventListener('resize',controller.onResize,{passive:true});
+  controller.onPointerLeave=()=>element.classList.remove('active');
   addEventListener('pointermove',controller.onPointerMove,{passive:true});
   document.addEventListener('mouseleave',controller.onPointerLeave,{passive:true});
-  const draw=()=>{
-    if(silverTrailController!==controller)return;
-    context.clearRect(0,0,innerWidth,innerHeight);
-    const now=performance.now();
-    while(points[0]&&now-points[0].born>430)points.shift();
-    context.globalCompositeOperation='lighter';
-    for(let index=1;index<points.length;index++){
-      const previous=points[index-1],point=points[index];
-      const life=Math.max(0,1-(now-point.born)/430);
-      const taper=Math.min(1,index/8);
-      const alpha=life*taper;
-      context.beginPath();
-      context.moveTo(previous.x,previous.y);
-      context.lineTo(point.x,point.y);
-      context.lineCap='round';
-      context.lineJoin='round';
-      context.lineWidth=1.1+alpha*3;
-      context.shadowBlur=9;
-      context.shadowColor=`rgba(218,222,232,${alpha*.42})`;
-      context.strokeStyle=`rgba(226,229,237,${alpha*.34})`;
-      context.stroke();
-      context.shadowBlur=0;
-      context.lineWidth=.65+alpha*.8;
-      context.strokeStyle=`rgba(250,250,252,${alpha*.68})`;
-      context.stroke();
-    }
-    context.globalCompositeOperation='source-over';
-    controller.animationFrame=requestAnimationFrame(draw);
-  };
-  controller.animationFrame=requestAnimationFrame(draw);
 }
 function syncSilverTrail(){
   const enabled=trailSetting.checked&&!motionSetting.checked;

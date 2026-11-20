@@ -75,15 +75,15 @@
 
       <section id="viewer" class="viewer" hidden>
         <header class="viewer-bar">
-          <button id="viewer-back" type="button" aria-label="Back">←</button>
-          <button id="viewer-forward" type="button" aria-label="Forward" title="Forward" disabled>→</button>
-          <button id="viewer-reload" type="button" aria-label="Reload">↻</button>
+          <button id="viewer-back" class="viewer-icon-button" type="button" aria-label="Back"><svg aria-hidden="true" viewBox="0 0 24 24"><path d="m14 6-6 6 6 6"/></svg></button>
+          <button id="viewer-forward" class="viewer-icon-button" type="button" aria-label="Forward" title="Forward" disabled><svg aria-hidden="true" viewBox="0 0 24 24"><path d="m10 6 6 6-6 6"/></svg></button>
+          <button id="viewer-reload" class="viewer-icon-button" type="button" aria-label="Reload"><svg aria-hidden="true" viewBox="0 0 24 24"><path d="M19 8a7 7 0 1 0 1 6M19 4v4h-4"/></svg></button>
           <div class="viewer-address">
-            <span aria-hidden="true">●</span>
-            <form id="viewer-address-form"><input id="viewer-url" aria-label="Edit address or search" placeholder="Search or enter URL…" autocomplete="off" /><button type="submit" aria-label="Go">↵</button></form>
+            <span class="viewer-site-status" aria-hidden="true"></span>
+            <form id="viewer-address-form"><input id="viewer-url" aria-label="Edit address or search" placeholder="Search or enter URL…" autocomplete="off" /><button type="submit" aria-label="Go">Go</button></form>
           </div>
-          <button id="viewer-external" type="button">Open externally ↗</button>
-          <button id="viewer-close" type="button" aria-label="Return home">×</button>
+          <button id="viewer-external" class="viewer-text-button" type="button">Open in browser</button>
+          <button id="viewer-close" class="viewer-icon-button" type="button" aria-label="Return home"><svg aria-hidden="true" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18"/></svg></button>
         </header>
         <div id="viewer-note" class="viewer-note" role="status">Orvian keeps browsing inside this window when the site and host support it.</div>
         <div id="viewer-frame-host" class="viewer-frame-host" aria-label="Embedded website viewer"></div>
@@ -224,10 +224,14 @@
       <aside class="settings-sidebar">
         <button id="settings-profile" class="settings-profile" type="button" hidden><span id="settings-profile-avatar"></span><span><strong id="settings-profile-name"></strong><small id="settings-profile-handle"></small></span></button><div><p class="dialog-kicker">ORVIAN</p><h2>Settings</h2></div>
         <nav aria-label="Settings sections">
-          <button class="settings-tab active" type="button" data-settings-tab="general">General</button>
-          <button class="settings-tab" type="button" data-settings-tab="appearance">Appearance</button>
-          <button class="settings-tab" type="button" data-settings-tab="chat">Chat</button><button class="settings-tab" type="button" data-settings-tab="play">Play</button><button class="settings-tab" type="button" data-settings-tab="accessibility">Accessibility</button><button class="settings-tab" type="button" data-settings-tab="privacy">Privacy</button>
-          <button class="settings-tab" type="button" data-settings-tab="data">Data</button>
+          <span class="settings-nav-label">Workspace</span>
+          <button class="settings-tab active" type="button" data-icon="⌂" data-settings-tab="general">General</button>
+          <button class="settings-tab" type="button" data-icon="◐" data-settings-tab="appearance">Appearance</button>
+          <span class="settings-nav-label">Features</span>
+          <button class="settings-tab" type="button" data-icon="◌" data-settings-tab="chat">Chat</button><button class="settings-tab" type="button" data-icon="◇" data-settings-tab="play">Play</button>
+          <span class="settings-nav-label">System</span>
+          <button class="settings-tab" type="button" data-icon="Aa" data-settings-tab="accessibility">Accessibility</button><button class="settings-tab" type="button" data-icon="◈" data-settings-tab="privacy">Privacy</button>
+          <button class="settings-tab" type="button" data-icon="▤" data-settings-tab="data">Data</button>
         </nav>
         <button id="reset-preferences" class="reset-preferences" type="button">Reset to defaults</button><p class="settings-version">Orvian • Personal start page</p>
       </aside>
@@ -245,7 +249,7 @@
             <label class="setting"><span><strong>Animated background</strong><small>Pause background video to reduce GPU usage</small></span><input id="video-enabled-setting" type="checkbox" /></label><label class="setting"><span><strong>Music volume</strong><small>Ambient music volume</small></span><input id="audio-volume-setting" type="range" min="0" max="100" step="5"/></label><label class="setting"><span><strong>24-hour clock</strong><small>Use 24-hour time on Home</small></span><input id="clock24-setting" type="checkbox" /></label><label class="setting"><span><strong>Show date</strong><small>Display the date beneath the clock</small></span><input id="date-visible-setting" type="checkbox" /></label><label class="setting"><span><strong>Color style</strong><small>Choose Orvian’s interface tone</small></span><select id="theme-setting"><option value="midnight">Midnight</option><option value="obsidian">Obsidian</option><option value="graphite">Graphite</option></select></label>
             <label class="setting"><span><strong>Interface density</strong><small>Adjust spacing across Orvian</small></span><select id="density-setting"><option value="comfortable">Comfortable</option><option value="compact">Compact</option></select></label><label class="setting"><span><strong>Show clock</strong><small>Display local time on Home</small></span><input id="clock-setting" type="checkbox" /></label><label class="setting"><span><strong>Show shortcuts</strong><small>Display the Home shortcut grid</small></span><input id="shortcuts-setting" type="checkbox" /></label><label class="setting"><span><strong>Show utility dock</strong><small>Display Links, Settings, Account, and Tabs</small></span><input id="dock-setting" type="checkbox" /></label><label class="setting range-setting"><span><strong>Background brightness</strong><small>Adjust the animated banner</small></span><input id="background-setting" type="range" min="20" max="100" step="5" /></label>
             <label class="setting"><span><strong>Show poster images</strong><small>Display the rotating artwork beside Orvian</small></span><input id="images-setting" type="checkbox" /></label>
-            <label class="setting"><span><strong>Silver mouse trail</strong><small>Follow the pointer with a metallic glow</small></span><input id="trail-setting" type="checkbox" /></label>
+            <label class="setting"><span><strong>Silver pointer glow</strong><small>Optional lightweight cursor highlight</small></span><input id="trail-setting" type="checkbox" /></label>
             <label class="setting"><span><strong>Ambient music</strong><small>Loop the background track with soft fades</small></span><input id="music-setting" type="checkbox" /></label>
             <label class="setting"><span><strong>Reduce motion</strong><small>Disable animations and movement</small></span><input id="motion-setting" type="checkbox" /></label>
           </div>
