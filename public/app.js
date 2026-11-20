@@ -1,4 +1,4 @@
-const storageKeys={links:'orvian-links',engine:'orvian-search-engine',newTabs:'orvian-new-tabs',reduceMotion:'orvian-reduce-motion',profile:'orvian-profile',theme:'orvian-theme',background:'orvian-background',preferHttps:'orvian-prefer-https',stripTracking:'orvian-strip-tracking',music:'orvian-music',showImages:'orvian-show-images',showTrail:'orvian-show-trail',searchLayout:'orvian-search-layout',searchWidth:'orvian-search-width',searchFocus:'orvian-search-focus',density:'orvian-density',showClock:'orvian-show-clock',showShortcuts:'orvian-show-shortcuts',showDock:'orvian-show-dock',chatCompact:'orvian-chat-compact',chatOffline:'orvian-chat-offline',chatMembers:'orvian-chat-members',chatTime24:'orvian-chat-time24',gamesCompact:'orvian-games-compact',gamesRemember:'orvian-games-remember',fontScale:'orvian-font-scale',highContrast:'orvian-high-contrast',strongFocus:'orvian-strong-focus',lastGameFilter:'orvian-last-game-filter',videoEnabled:'orvian-video-enabled',audioVolume:'orvian-audio-volume',clock24:'orvian-clock24',showDate:'orvian-show-date',chatImages:'orvian-chat-images',chatScroll:'orvian-chat-scroll',gamesHero:'orvian-games-hero'};
+const storageKeys={links:'orvian-links',engine:'orvian-search-engine',newTabs:'orvian-new-tabs',reduceMotion:'orvian-reduce-motion',profile:'orvian-profile',theme:'orvian-theme',background:'orvian-background',preferHttps:'orvian-prefer-https',stripTracking:'orvian-strip-tracking',music:'orvian-music',showImages:'orvian-show-images',showTrail:'orvian-show-trail',searchLayout:'orvian-search-layout',searchWidth:'orvian-search-width',searchFocus:'orvian-search-focus',density:'orvian-density',showClock:'orvian-show-clock',showShortcuts:'orvian-show-shortcuts',showDock:'orvian-show-dock',chatCompact:'orvian-chat-compact',chatOffline:'orvian-chat-offline',chatMembers:'orvian-chat-members',chatTime24:'orvian-chat-time24',gamesCompact:'orvian-games-compact',gamesRemember:'orvian-games-remember',fontScale:'orvian-font-scale',highContrast:'orvian-high-contrast',strongFocus:'orvian-strong-focus',lastGameFilter:'orvian-last-game-filter',videoEnabled:'orvian-video-enabled',audioVolume:'orvian-audio-volume',musicCollapsed:'orvian-music-collapsed',clock24:'orvian-clock24',showDate:'orvian-show-date',chatImages:'orvian-chat-images',chatScroll:'orvian-chat-scroll',gamesHero:'orvian-games-hero'};
 const engines={ddg:'https://duckduckgo.com/?q=',google:'https://www.google.com/search?q=',bing:'https://www.bing.com/search?q=',brave:'https://search.brave.com/search?q=',startpage:'https://www.startpage.com/sp/search?query='};
 const searchForm=document.querySelector('#search-form');
 const searchInput=document.querySelector('#search-input');
@@ -344,6 +344,8 @@ const musicNext=document.querySelector('#music-next');
 const musicProgress=document.querySelector('#music-progress');
 const musicCurrentTime=document.querySelector('#music-current-time');
 const musicDuration=document.querySelector('#music-duration');
+const musicVolume=document.querySelector('#music-volume');
+const musicCollapse=document.querySelector('#music-collapse');
 let ambientTrackIndex=0;
 let ambientFadeFrame=0;
 let ambientUnlockBound=false;
@@ -362,7 +364,7 @@ function updateMusicPlayer(){
   musicProgress.value=ambientAudio.duration?String(ambientAudio.currentTime/ambientAudio.duration*100):'0';
   const playing=!ambientAudio.paused&&!ambientAudio.ended;
   musicPlayer.classList.toggle('playing',playing);
-  musicPlayPause.textContent=playing?'Ⅱ':'▶';
+  musicPlayPause.classList.toggle('is-playing',playing);
   musicPlayPause.setAttribute('aria-label',playing?'Pause':'Play');
 }
 function fadeAmbientTo(target,duration,onComplete){
@@ -429,6 +431,23 @@ musicProgress.addEventListener('input',()=>{
   if(ambientAudio.duration)ambientAudio.currentTime=Number(musicProgress.value)/100*ambientAudio.duration;
   updateMusicPlayer();
 });
+musicVolume.value=localStorage.getItem(storageKeys.audioVolume)??'42';
+musicVolume.addEventListener('input',()=>{
+  const volume=Number(musicVolume.value)/100;
+  localStorage.setItem(storageKeys.audioVolume,musicVolume.value);
+  const settingsVolume=document.querySelector('#audio-volume-setting');
+  if(settingsVolume)settingsVolume.value=musicVolume.value;
+  if(!ambientAudio.paused)ambientAudio.volume=volume;
+});
+function setMusicCollapsed(collapsed){
+  musicPlayer.classList.toggle('collapsed',collapsed);
+  musicCollapse.setAttribute('aria-label',collapsed?'Expand music player':'Collapse music player');
+  musicCollapse.title=collapsed?'Expand player':'Collapse player';
+  musicCollapse.querySelector('span').textContent=collapsed?'♪':'−';
+  localStorage.setItem(storageKeys.musicCollapsed,String(collapsed));
+}
+musicCollapse.addEventListener('click',()=>setMusicCollapsed(!musicPlayer.classList.contains('collapsed')));
+setMusicCollapsed(localStorage.getItem(storageKeys.musicCollapsed)!=='false');
 ambientAudio.addEventListener('timeupdate',updateMusicPlayer);
 ambientAudio.addEventListener('loadedmetadata',updateMusicPlayer);
 ambientAudio.addEventListener('play',updateMusicPlayer);
@@ -1065,6 +1084,7 @@ function applyAdvancedSettings(){
   const video=document.querySelector('.background-video');
   if(video){if(settingValue('videoEnabled')==='false'||motionSetting.checked)video.pause();else video.play().catch(()=>{})}
   if(!ambientAudio.paused)fadeAmbientTo(Number(settingValue('audioVolume'))/100,150);
+  musicVolume.value=settingValue('audioVolume');
   updateLocalClock();
   root.classList.toggle('search-floating',settingValue('searchLayout')==='floating');
   root.style.setProperty('--home-search-width',settingValue('searchWidth')+'px');
