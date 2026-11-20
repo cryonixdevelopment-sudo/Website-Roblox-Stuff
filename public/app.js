@@ -215,12 +215,16 @@ renderLinks();
 
 const localTimeElement=document.querySelector('#local-time');
 const localDateElement=document.querySelector('#local-date');
+const homeIntro=document.querySelector('.home-intro');
 function updateLocalClock(){
   const now=new Date();
   // The browser supplies its own locale and IANA time zone automatically.
   localTimeElement.textContent=new Intl.DateTimeFormat(undefined,{hour:'numeric',minute:'2-digit',hour12:localStorage.getItem(storageKeys.clock24)==='true'?false:undefined}).format(now);
   localDateElement.textContent=new Intl.DateTimeFormat(undefined,{weekday:'long',month:'long',day:'numeric'}).format(now);
   localTimeElement.dateTime=now.toISOString();
+  const hour=now.getHours();
+  const greeting=hour<12?'Good morning':hour<18?'Good afternoon':'Good evening';
+  homeIntro.textContent=`${greeting}. Everything you need, one quiet place.`;
 }
 updateLocalClock();
 setInterval(updateLocalClock,15000);
@@ -1095,6 +1099,9 @@ document.querySelector('#reset-preferences').addEventListener('click',()=>{
 });
 document.addEventListener('keydown',event=>{
   if((event.ctrlKey||event.metaKey)&&event.key===','){event.preventDefault();document.querySelector('#settings-dialog').showModal()}
+  if(event.key==='/'&&!event.ctrlKey&&!event.metaKey&&!event.altKey&&!launcher.hidden&&!/^(INPUT|TEXTAREA|SELECT)$/.test(document.activeElement?.tagName||'')){
+    event.preventDefault();searchInput.focus();searchInput.select();
+  }
 });
 const settingsEntry=document.createElement('button');settingsEntry.type='button';settingsEntry.className='settings-rescue';settingsEntry.textContent='⚙';settingsEntry.setAttribute('aria-label','Settings');settingsEntry.title='Settings (Ctrl+,)';settingsEntry.addEventListener('click',()=>document.querySelector('#settings-dialog').showModal());document.body.append(settingsEntry);
 const searchHome=document.createComment('Home search position');searchForm.before(searchHome);
