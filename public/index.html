@@ -90,6 +90,11 @@
       </section>
 
       <section id="chat-view" class="chat-view discord-workspace" hidden>
+        <aside class="chat-server-rail" aria-label="Chat spaces">
+          <button class="chat-space-button" type="button" data-chat-space="direct" aria-label="Direct messages"><span>@</span></button>
+          <div class="chat-space-divider"></div>
+          <button class="chat-space-button active" type="button" data-chat-space="orvian" aria-label="Orvian server"><img src="/favicon.png" alt="" /></button>
+        </aside>
         <aside class="chat-sidebar">
           <div class="chat-brand">
             <div class="chat-brand-mark"><img src="/favicon.png" alt="" /></div>
@@ -241,6 +246,7 @@
           <div class="settings-card">
             <label class="setting"><span><strong>Browser controls</strong><small>Choose a top toolbar or floating navigation dock</small></span><select id="search-layout-setting"><option value="standard">Top toolbar</option><option value="floating">Floating navigation dock</option></select></label><label class="setting range-setting"><span><strong>Search width</strong><small>Resize the search bar</small></span><input id="search-width-setting" type="range" min="360" max="760" step="20" /></label><label class="setting"><span><strong>Focus search on Home</strong><small>Place the cursor in search when Orvian opens</small></span><input id="search-focus-setting" type="checkbox" /></label><label class="setting"><span><strong>Search engine</strong><small>Used for words and questions</small></span><select id="search-engine"><option value="ddg">DuckDuckGo</option><option value="google">Google</option><option value="bing">Bing</option><option value="brave">Brave</option><option value="startpage">Startpage</option></select></label>
             <label class="setting"><span><strong>Open in new tabs</strong><small>Keep Orvian open while browsing</small></span><input id="new-tab-setting" type="checkbox" /></label>
+            <label class="setting"><span><strong>Show search provider</strong><small>Display the active engine inside the Home search bar</small></span><input id="search-provider-setting" type="checkbox" /></label>
           </div>
         </section>
         <section class="settings-panel" data-settings-panel="appearance">
@@ -251,6 +257,8 @@
             <label class="setting"><span><strong>Show poster images</strong><small>Display the rotating artwork beside Orvian</small></span><input id="images-setting" type="checkbox" /></label>
             <label class="setting"><span><strong>Silver pointer glow</strong><small>Optional lightweight cursor highlight</small></span><input id="trail-setting" type="checkbox" /></label>
             <label class="setting"><span><strong>Ambient music</strong><small>Loop the background track with soft fades</small></span><input id="music-setting" type="checkbox" /></label>
+            <label class="setting"><span><strong>Collapse music player</strong><small>Start with the compact music control</small></span><input id="music-collapsed-setting" type="checkbox" /></label>
+            <label class="setting"><span><strong>Shortcut motion</strong><small>Animate shortcut cards when hovering</small></span><input id="tile-motion-setting" type="checkbox" /></label>
             <label class="setting"><span><strong>Reduce motion</strong><small>Disable animations and movement</small></span><input id="motion-setting" type="checkbox" /></label>
           </div>
         </section>
@@ -261,6 +269,9 @@
             <label class="setting"><span><strong>Show offline members</strong><small>Keep offline accounts visible in the member list</small></span><input id="chat-offline-setting" type="checkbox" /></label>
             <label class="setting"><span><strong>Open member list by default</strong><small>Show the roster whenever Chat opens</small></span><input id="chat-members-setting" type="checkbox" /></label>
             <label class="setting"><span><strong>24-hour timestamps</strong><small>Use 24-hour time in future chat displays</small></span><input id="chat-time-setting" type="checkbox" /></label>
+            <label class="setting"><span><strong>Notification sounds</strong><small>Play a subtle tone for new messages</small></span><input id="chat-sounds-setting" type="checkbox" /></label>
+            <label class="setting"><span><strong>Desktop notifications</strong><small>Notify when Orvian is in the background</small></span><input id="chat-desktop-setting" type="checkbox" /></label>
+            <label class="setting"><span><strong>Enter to send</strong><small>Use Shift+Enter for a new line</small></span><input id="chat-enter-setting" type="checkbox" /></label>
           </div>
         </section>
         <section class="settings-panel" data-settings-panel="play">

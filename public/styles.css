@@ -1581,3 +1581,7 @@ body:has(dialog[open]) #music-player { opacity:0;pointer-events:none;transform:t
   #settings-dialog .settings-card .setting { align-items:flex-start;flex-direction:column;gap:12px; }
   #settings-dialog select,#settings-dialog input[type="range"] { width:100%; }
 }
+
+html.hide-search-provider .search-provider { display:none!important; }
+html.no-tile-motion .tile,html.no-tile-motion .tile-icon { transition:none!important; }
+html.no-tile-motion .tile:hover,html.no-tile-motion .tile:focus-visible { transform:none; }

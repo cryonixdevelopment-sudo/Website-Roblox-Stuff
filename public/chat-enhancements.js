@@ -4,6 +4,15 @@ let chatRequest=0,chatPending=null,chatRenderedKey='',chatRenderedContext='',cha
 let chatConversations=[];
 const chatDrafts=new Map();
 let lastChatContext=chatContext();
+let chatEvents=null;
+function connectChatEvents(){
+  if(chatEvents||!authUser||chatView.hidden)return;
+  chatEvents=new EventSource('/api/chat/events');
+  chatEvents.addEventListener('chat-update',()=>{loadChatMessages({quiet:true});loadConversations()});
+  chatEvents.onerror=()=>{chatConnection.textContent='Reconnecting';chatConnection.dataset.state='error'};
+  chatEvents.addEventListener('ready',()=>{chatConnection.textContent='Live';chatConnection.dataset.state='connected'});
+}
+function disconnectChatEvents(){chatEvents?.close();chatEvents=null}
 
 async function chatApi(url,options={}){
   const response=await fetch(url,{credentials:'same-origin',cache:'no-store',...options,
@@ -109,7 +118,7 @@ function syncChatContext(){
   const context=chatContext();
   if(context!==lastChatContext){
     chatDrafts.set(lastChatContext,chatInput.value);chatInput.value=chatDrafts.get(context)||'';
-    clearChatAttachment();hideMentionMenu();hideCommandMenu();chatForceScroll=true;lastChatContext=context;
+    clearChatAttachment();clearChatReply();hideMentionMenu();hideCommandMenu();chatForceScroll=true;lastChatContext=context;
   }
   const readOnly=!activeDmUser&&['rules','announcements'].includes(activeChatChannel)&&authUser?.role!=='owner';
   chatInput.disabled=readOnly;document.querySelector('.composer-send').disabled=readOnly;
@@ -132,8 +141,8 @@ renderMembers=function(members){
 };
 let chatSoundContext=null;
 function playChatNotification(){
-  if(localStorage.getItem('orvian-chat-notifications')==='off'||authUser?.status==='dnd')return;
-  try{
+  if(authUser?.status==='dnd')return;
+  if(localStorage.getItem(storageKeys.chatSounds)!=='false')try{
     chatSoundContext??=new (window.AudioContext||window.webkitAudioContext)();
     if(chatSoundContext.state!=='running')return;
     const tone=chatSoundContext.createOscillator(),gain=chatSoundContext.createGain();
@@ -141,14 +150,30 @@ function playChatNotification(){
     gain.gain.setValueAtTime(.025,chatSoundContext.currentTime);gain.gain.exponentialRampToValueAtTime(.0001,chatSoundContext.currentTime+.12);
     tone.start();tone.stop(chatSoundContext.currentTime+.13);
   }catch{}
+  if(document.hidden&&localStorage.getItem(storageKeys.desktopNotifications)==='true'&&'Notification' in window&&Notification.permission==='granted')new Notification('New Orvian message',{body:'Open Chat to view the conversation.',icon:'/favicon.png'});
 }
+
+const chatContextMenu=document.createElement('div');chatContextMenu.className='chat-context-menu';chatContextMenu.hidden=true;document.body.append(chatContextMenu);
+function closeChatContextMenu(){chatContextMenu.hidden=true;chatContextMenu.replaceChildren()}
+function contextAction(label,callback,danger=false){const button=document.createElement('button');button.type='button';button.textContent=label;button.classList.toggle('danger',danger);button.addEventListener('click',()=>{closeChatContextMenu();callback()});chatContextMenu.append(button)}
+chatMessages.addEventListener('contextmenu',event=>{
+  const entry=event.target.closest('.chat-message-entry');if(!entry)return;
+  const message=currentChatMessages.find(item=>String(item.id)===entry.dataset.messageId);if(!message)return;
+  event.preventDefault();closeChatContextMenu();
+  contextAction('Reply',()=>beginChatReply(message));
+  contextAction('React with 👍',()=>toggleChatReaction(message,'👍'));
+  if(authUser?.role==='owner')contextAction(message.pinned_at?'Unpin message':'Pin message',()=>toggleChatPin(message));
+  if(message.canModify){contextAction('Edit message',()=>editChatMessage(message));contextAction('Delete message',()=>deleteChatMessage(message),true)}
+  chatContextMenu.style.left=Math.min(event.clientX,innerWidth-190)+'px';chatContextMenu.style.top=Math.min(event.clientY,innerHeight-220)+'px';chatContextMenu.hidden=false;
+});
+document.addEventListener('pointerdown',event=>{if(!chatContextMenu.contains(event.target))closeChatContextMenu()});
 new MutationObserver(()=>{
-  if(chatView.hidden){chatPending?.abort();chatRequest++;newMessageButton.hidden=true;return}
-  syncChatContext();loadConversations();chatView.classList.toggle('chat-notifications-off',localStorage.getItem('orvian-chat-notifications')==='off');
+  if(chatView.hidden){chatPending?.abort();chatRequest++;newMessageButton.hidden=true;disconnectChatEvents();return}
+  syncChatContext();loadConversations();connectChatEvents();chatView.classList.toggle('chat-notifications-off',localStorage.getItem(storageKeys.chatSounds)==='false');
 }).observe(chatView,{attributes:true,attributeFilter:['hidden']});
 document.addEventListener('visibilitychange',()=>{if(!document.hidden&&!chatView.hidden){sendHeartbeat();loadMembers();loadConversations();loadChatMessages({quiet:true})}});
 window.addEventListener('online',()=>{if(!chatView.hidden)loadChatMessages({quiet:true})});
-document.querySelector('#logout-button').addEventListener('click',()=>{if(!chatView.hidden)closeChat();allChatMembers=[];chatConversations=[];chatDrafts.clear();document.querySelector('#dm-channels').replaceChildren()});
+document.querySelector('#logout-button').addEventListener('click',()=>{disconnectChatEvents();if(!chatView.hidden)closeChat();allChatMembers=[];chatConversations=[];chatDrafts.clear();document.querySelector('#dm-channels').replaceChildren()});
 
 // Replace blocking browser prompts with matching in-app dialogs.
 const actionDialog=document.createElement('dialog');actionDialog.className='chat-action-dialog';
@@ -187,7 +212,7 @@ document.addEventListener('click',event=>{if(!emojiPicker.contains(event.target)
 // Multi-line composer: Enter sends, Shift+Enter adds a line.
 chatInput.addEventListener('keydown',event=>{
   if(event.defaultPrevented||event.isComposing)return;
-  if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();document.querySelector('#chat-form').requestSubmit()}
+  if(event.key==='Enter'&&!event.shiftKey&&localStorage.getItem(storageKeys.enterSends)!=='false'){event.preventDefault();document.querySelector('#chat-form').requestSubmit()}
   if(event.key==='Escape')emojiPicker.hidden=true;
 });
 const counter=document.createElement('small');counter.className='chat-character-count';counter.textContent='0 / 1000';document.querySelector('.chat-compose-wrap').append(counter);
@@ -197,6 +222,14 @@ messageSearch.addEventListener('input',()=>{const query=messageSearch.value.trim
 // Channel navigation on small screens stays named and usable.
 const channelToggle=document.createElement('button');channelToggle.type='button';channelToggle.className='chat-channel-toggle';channelToggle.textContent='☰';channelToggle.setAttribute('aria-label','Choose channel');document.querySelector('.chat-header').prepend(channelToggle);
 channelToggle.addEventListener('click',()=>document.querySelector('.chat-sidebar').classList.toggle('mobile-channels-open'));
+document.querySelectorAll('.chat-space-button').forEach(button=>button.addEventListener('click',()=>{
+  document.querySelectorAll('.chat-space-button').forEach(item=>item.classList.toggle('active',item===button));
+  if(button.dataset.chatSpace==='orvian')document.querySelector('[data-channel="general"]')?.click();
+  else {
+    const first=document.querySelector('.dm-channel');
+    if(first)first.click();else{document.querySelector('.chat-sidebar').classList.add('mobile-channels-open');channelFilter.focus();chatStatus.textContent='Start a direct message from the member list.'}
+  }
+}));
 document.querySelector('#chat-members-toggle').addEventListener('click',()=>{document.querySelector('#chat-members-toggle').setAttribute('aria-expanded',String(!chatView.classList.contains('members-hidden')))});
 document.querySelector('#profile-dialog').addEventListener('close',()=>{chatRenderedKey=''});
 

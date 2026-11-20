@@ -81,6 +81,16 @@ function ensureAuthSchema(){
     ALTER TABLE orvian_chat_messages ADD COLUMN IF NOT EXISTS edited_at TIMESTAMPTZ;
     ALTER TABLE orvian_chat_messages ADD COLUMN IF NOT EXISTS attachment_data TEXT;
     ALTER TABLE orvian_chat_messages ADD COLUMN IF NOT EXISTS attachment_url TEXT;
+    ALTER TABLE orvian_chat_messages ADD COLUMN IF NOT EXISTS reply_to_id BIGINT;
+    ALTER TABLE orvian_chat_messages ADD COLUMN IF NOT EXISTS pinned_at TIMESTAMPTZ;
+    ALTER TABLE orvian_chat_messages ADD COLUMN IF NOT EXISTS pinned_by BIGINT;
+    CREATE TABLE IF NOT EXISTS orvian_message_reactions (
+      message_id BIGINT NOT NULL REFERENCES orvian_chat_messages(id) ON DELETE CASCADE,
+      user_id BIGINT NOT NULL REFERENCES orvian_users(id) ON DELETE CASCADE,
+      emoji VARCHAR(16) NOT NULL,
+      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      PRIMARY KEY(message_id,user_id,emoji)
+    );
     CREATE TABLE IF NOT EXISTS orvian_blocks (
       blocker_id BIGINT NOT NULL REFERENCES orvian_users(id) ON DELETE CASCADE,
       blocked_id BIGINT NOT NULL REFERENCES orvian_users(id) ON DELETE CASCADE,
@@ -199,6 +209,17 @@ app.post('/api/auth/logout',async(req,res)=>{
   res.json({ok:true});
 });
 const chatChannels=new Set(['general','introductions','announcements','rules']);
+const chatEventClients=new Set();
+function broadcastChatEvent(type,details={}){
+  const payload=`event: ${type}\ndata: ${JSON.stringify(details)}\n\n`;
+  for(const client of chatEventClients){try{client.write(payload)}catch{chatEventClients.delete(client)}}
+}
+app.get('/api/chat/events',requireAccount,(req,res)=>{
+  res.setHeader('Content-Type','text/event-stream');res.setHeader('Cache-Control','no-cache, no-transform');res.setHeader('Connection','keep-alive');res.flushHeaders?.();
+  res.write(`event: ready\ndata: {}\n\n`);chatEventClients.add(res);
+  const heartbeat=setInterval(()=>res.write(': keepalive\n\n'),25000);
+  req.on('close',()=>{clearInterval(heartbeat);chatEventClients.delete(res)});
+});
 async function requireAccount(req,res,next){
   try{
     const user=await currentAuthUser(req);
@@ -368,6 +389,7 @@ app.post('/api/chat/dm/:id',requireAccount,async(req,res)=>{
     if(!await dmAllowed(req.authUser.id,other))return res.status(403).json({error:'Direct messages are unavailable because one of you blocked the other.'});
     const target=await authPool.query('SELECT 1 FROM orvian_users WHERE id=$1',[other]);if(!target.rowCount)return res.status(404).json({error:'Member not found.'});
     const result=await authPool.query('INSERT INTO orvian_direct_messages(sender_id,recipient_id,body,attachment_data,attachment_url) VALUES($1,$2,$3,$4,$5) RETURNING id,body,created_at',[req.authUser.id,other,body,attachmentData||null,attachmentUrl||null]);
+    broadcastChatEvent('chat-update',{kind:'dm',userIds:[String(req.authUser.id),other]});
     res.status(201).json({message:{...result.rows[0],id:String(result.rows[0].id),username:req.authUser.username,role:req.authUser.role}});
   }catch(error){console.error('DM send failed:',error.message);res.status(500).json({error:'Unable to send direct message.'})}
 });
@@ -381,7 +403,7 @@ app.patch('/api/chat/direct-messages/:id',requireAccount,async(req,res)=>{
       WHERE d.id=$2 AND d.sender_id=$3 AND NOT EXISTS(SELECT 1 FROM orvian_blocks b
         WHERE (b.blocker_id=d.sender_id AND b.blocked_id=d.recipient_id) OR (b.blocker_id=d.recipient_id AND b.blocked_id=d.sender_id)) RETURNING id`,[body,id,req.authUser.id]);
     if(!result.rowCount)return res.status(404).json({error:'Message unavailable or not yours.'});
-    res.json({ok:true});
+    broadcastChatEvent('chat-update',{kind:'dm'});res.json({ok:true});
   }catch(error){console.error('DM edit failed:',error.message);res.status(500).json({error:'Unable to edit message.'})}
 });
 app.delete('/api/chat/direct-messages/:id',requireAccount,async(req,res)=>{
@@ -389,7 +411,7 @@ app.delete('/api/chat/direct-messages/:id',requireAccount,async(req,res)=>{
   try{
     const result=await authPool.query('DELETE FROM orvian_direct_messages WHERE id=$1 AND sender_id=$2 RETURNING id',[req.params.id,req.authUser.id]);
     if(!result.rowCount)return res.status(404).json({error:'Message unavailable or not yours.'});
-    res.status(204).end();
+    broadcastChatEvent('chat-update',{kind:'dm'});res.status(204).end();
   }catch(error){console.error('DM delete failed:',error.message);res.status(500).json({error:'Unable to delete message.'})}
 });
 app.get('/api/chat/messages',requireAccount,async(req,res)=>{
@@ -397,8 +419,14 @@ app.get('/api/chat/messages',requireAccount,async(req,res)=>{
   if(!chatChannels.has(channel))return res.status(400).json({error:'Unknown channel.'});
   try{
     const result=await authPool.query(`
-      SELECT m.id,m.user_id,m.body,m.created_at,m.edited_at,m.attachment_data,m.attachment_url,u.username,u.role
+      SELECT m.id,m.user_id,m.body,m.created_at,m.edited_at,m.attachment_data,m.attachment_url,m.reply_to_id,m.pinned_at,
+        u.username,u.role,reply.body AS reply_body,reply_user.username AS reply_username,
+        COALESCE((SELECT json_agg(json_build_object('emoji',reaction.emoji,'count',reaction.total,'reacted',reaction.reacted))
+          FROM (SELECT mr.emoji,COUNT(*)::int AS total,BOOL_OR(mr.user_id=$2) AS reacted
+            FROM orvian_message_reactions mr WHERE mr.message_id=m.id GROUP BY mr.emoji ORDER BY MIN(mr.created_at)) reaction),'[]'::json) AS reactions
       FROM orvian_chat_messages m JOIN orvian_users u ON u.id=m.user_id
+      LEFT JOIN orvian_chat_messages reply ON reply.id=m.reply_to_id
+      LEFT JOIN orvian_users reply_user ON reply_user.id=reply.user_id
       WHERE m.channel=$1
         AND NOT EXISTS(
           SELECT 1 FROM orvian_blocks b
@@ -415,6 +443,7 @@ app.post('/api/chat/messages',requireAccount,async(req,res)=>{
   const body=String(req.body?.body||'').trim();
   const attachmentData=String(req.body?.attachmentData||'');
   const attachmentUrl=String(req.body?.attachmentUrl||'');
+  const replyToId=String(req.body?.replyToId||'');
   if(!chatChannels.has(channel))return res.status(400).json({error:'Unknown channel.'});
   if((!body&&!attachmentData&&!attachmentUrl)||body.length>1000)return res.status(400).json({error:'Add a message or image; text is limited to 1000 characters.'});
   if(attachmentData&&(!/^data:image\/(png|jpeg|webp|gif);base64,/i.test(attachmentData)||attachmentData.length>350000))return res.status(400).json({error:'Image must be PNG, JPEG, WebP, or GIF under 250 KB.'});
@@ -424,12 +453,45 @@ app.post('/api/chat/messages',requireAccount,async(req,res)=>{
   try{
     if(req.authUser.role!=='owner'&&req.authUser.chat_muted_until&&new Date(req.authUser.chat_muted_until)>new Date())
       return res.status(403).json({error:'You are muted until '+new Date(req.authUser.chat_muted_until).toLocaleString()+'.'});
+    let validReply=null;
+    if(replyToId){
+      if(!/^\d+$/.test(replyToId))return res.status(400).json({error:'Invalid reply target.'});
+      const reply=await authPool.query('SELECT id FROM orvian_chat_messages WHERE id=$1 AND channel=$2',[replyToId,channel]);
+      if(!reply.rowCount)return res.status(404).json({error:'The message being replied to is unavailable.'});
+      validReply=replyToId;
+    }
     const result=await authPool.query(`
-      INSERT INTO orvian_chat_messages(channel,user_id,body,attachment_data,attachment_url) VALUES($1,$2,$3,$4,$5)
-      RETURNING id,body,attachment_data,attachment_url,created_at
-    `,[channel,req.authUser.id,body,attachmentData||null,attachmentUrl||null]);
+      INSERT INTO orvian_chat_messages(channel,user_id,body,attachment_data,attachment_url,reply_to_id) VALUES($1,$2,$3,$4,$5,$6)
+      RETURNING id,body,attachment_data,attachment_url,reply_to_id,created_at
+    `,[channel,req.authUser.id,body,attachmentData||null,attachmentUrl||null,validReply]);
+    broadcastChatEvent('chat-update',{kind:'channel',channel});
     res.status(201).json({message:{...result.rows[0],id:String(result.rows[0].id),username:req.authUser.username,role:req.authUser.role}});
   }catch(error){console.error('Chat post failed:',error.message);res.status(500).json({error:'Unable to send message.'})}
+});
+
+app.post('/api/chat/messages/:id/reactions',requireAccount,async(req,res)=>{
+  const id=String(req.params.id||'');const emoji=String(req.body?.emoji||'');
+  const allowed=new Set(['👍','❤️','😂','😮','😢','🔥','🎉','👀']);
+  if(!/^\d+$/.test(id)||!allowed.has(emoji))return res.status(400).json({error:'Invalid reaction.'});
+  try{
+    const message=await authPool.query('SELECT id FROM orvian_chat_messages WHERE id=$1',[id]);
+    if(!message.rowCount)return res.status(404).json({error:'Message unavailable.'});
+    const removed=await authPool.query('DELETE FROM orvian_message_reactions WHERE message_id=$1 AND user_id=$2 AND emoji=$3 RETURNING emoji',[id,req.authUser.id,emoji]);
+    if(!removed.rowCount)await authPool.query('INSERT INTO orvian_message_reactions(message_id,user_id,emoji) VALUES($1,$2,$3)',[id,req.authUser.id,emoji]);
+    broadcastChatEvent('chat-update',{kind:'reaction',messageId:id});res.json({reacted:!removed.rowCount});
+  }catch(error){console.error('Chat reaction failed:',error.message);res.status(500).json({error:'Unable to update reaction.'})}
+});
+
+app.patch('/api/chat/messages/:id/pin',requireAccount,async(req,res)=>{
+  const id=String(req.params.id||'');if(!/^\d+$/.test(id))return res.status(400).json({error:'Invalid message.'});
+  if(req.authUser.role!=='owner')return res.status(403).json({error:'Only the Owner can manage pinned messages.'});
+  try{
+    const result=await authPool.query(`UPDATE orvian_chat_messages
+      SET pinned_at=CASE WHEN pinned_at IS NULL THEN NOW() ELSE NULL END,pinned_by=CASE WHEN pinned_at IS NULL THEN $2 ELSE NULL END
+      WHERE id=$1 RETURNING pinned_at`,[id,req.authUser.id]);
+    if(!result.rowCount)return res.status(404).json({error:'Message unavailable.'});
+    broadcastChatEvent('chat-update',{kind:'pin',messageId:id});res.json({pinned:Boolean(result.rows[0].pinned_at)});
+  }catch(error){console.error('Chat pin failed:',error.message);res.status(500).json({error:'Unable to update pin.'})}
 });
 
 
@@ -445,7 +507,7 @@ app.patch('/api/chat/messages/:id',requireAccount,async(req,res)=>{
       WHERE id=$2 AND user_id=$3 RETURNING id,body,created_at,edited_at
     `,[body,id,req.authUser.id]);
     if(!result.rowCount)return res.status(404).json({error:'Message not found or does not belong to you.'});
-    res.json({message:{...result.rows[0],id:String(result.rows[0].id)}});
+    broadcastChatEvent('chat-update',{kind:'channel'});res.json({message:{...result.rows[0],id:String(result.rows[0].id)}});
   }catch(error){console.error('Chat edit failed:',error.message);res.status(500).json({error:'Unable to edit message.'})}
 });
 app.delete('/api/chat/messages/:id',requireAccount,async(req,res)=>{
@@ -454,7 +516,7 @@ app.delete('/api/chat/messages/:id',requireAccount,async(req,res)=>{
   try{
     const result=await authPool.query('DELETE FROM orvian_chat_messages WHERE id=$1 AND user_id=$2 RETURNING id',[id,req.authUser.id]);
     if(!result.rowCount)return res.status(404).json({error:'Message not found or does not belong to you.'});
-    res.status(204).end();
+    broadcastChatEvent('chat-update',{kind:'channel'});res.status(204).end();
   }catch(error){console.error('Chat delete failed:',error.message);res.status(500).json({error:'Unable to delete message.'})}
 });
 
